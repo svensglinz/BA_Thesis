@@ -1,43 +1,50 @@
-library(tidyverse)
-library(readxl)
-library(lubridate)
-library(zoo)
-library(runner)
-
-dat <- read_xlsx("Data/selected_futures_returns.xlsx")
-dat <- dat |> filter(INSTRUMENT == "FGBX")
-
-returns$DATE <- as.Date(returns$DATE)
-dates <-  returns |>
-  filter(INSTRUMENT == "FGBX") |>
-  select(DATE) |>
-  unlist()
-
-FGBX <- returns |>
-  filter(INSTRUMENT == "FGBX") |>
-  select(LOG_RET_1D) |>
-  unlist()
-
-attr(FGBX, "names") <- NULL
 
 #--------------------------------
 #Input:
-#lambda: Decay factor (0,1]
+#lambda: Decay factor (0,1)
 #returns: numeric vector which contains a series of log returns
 #The function calculates the n_day rolling exponentially-weighted-volatility 
 #for each ordered return observation
 #--------------------------------
 
-vola <- function(lambda, returns, n_day){
+read_master <- function(path){
+  stress_periods <- read_excel(path, sheet = "stress_periods")
+  stress_periods[1:3] <- lapply(stress_periods[1:3],
+                                function(x) as.Date(x, format = "%d/%m/%Y"))
+  
+  returns <- read_excel("Data/data_input.xlsx", sheet = "returns")
+  returns[1] <- as.Date(returns[[1]])
+  
+  out <- list(stress_periods = stress_periods, 
+              returns = returns)
+  
+  return(out)
+}
 
-options(warn = -1)  
-weights <- (1-lambda)* ((lambda) ^c(0:(length(returns)-1)))
+master <- read_master("Data/data_input.xlsx")
 
-roll_vola <- rollapply(returns, n_day,
-                       FUN = function(x){
-                         sum(x^2 *weights), align = "left", fill = NA)}
 
-return(roll_vola)
+#calculates volatility of a product between two user-defined dates
+calculate_vola <- function(product, start, end = NA, lambda, n_day){
+  
+  returns <- 
+    master$returns |> 
+    filter(INST == product) |> 
+    filter(DATE <= start) |> 
+    select(-INST)
+  
+  cutoff <- max(which(returns$DATE >= end))
+  returns <- returns[1:(cutoff+ n_day),]
+  
+  weights <- (1-lambda)* ((lambda) ^c(0:(n_day-1)))
+  
+  vola <- rollapply(returns["LOG_RET"], n_day,
+                         FUN = function(x) 
+                           sum(x^2 *weights), align = "left")
+  
+  out <- tibble(returns = returns$DATE[1:length(vola)],
+                vola = as.vector(vola))
+  return(out)
 
 }
 
@@ -54,90 +61,180 @@ return(roll_vola)
 #the provided parameter specifications. 
 #--------------------------------
 
-calculate_margin <- function(returns, MPOR, factor, log_ret = TRUE, quantile, absolute = FALSE, lambda,
-                             floor = FALSE){
-  
-  #------------------------
-  #load required packages
-  #------------------------
-  
-  tryCatch(expr = {
-  require("tidyverse")
-  require("zoo")}, 
-  erorr = function(e) stop("make sure that tidyverse and zoo are installed"))
-  
-  #-------------------------
-  #ERROR HANDLING FOR ALL ARGUMENTS
-  #-------------------------
-  
-  #returns
-  if(!is.numeric(returns)) {stop("make sure that returns are a numeric vector")}
-  
-  #check here if prices or log returns are provided?
-  #returns <- ifelse(isTRUE(log_ret), returns, log(returns))
-  
-  #MPOR
-  if(!is.numeric(MPOR)){
-    
-    stop("MPOR must be an integer")
-    
-  } else if (!(as.integer(MPOR) == MPOR)){
-    
-    stop("MPOR must be an integer")
-  }
-  
-  #quantile
-  if(abs(quantile) > 1){
-    stop("Quantile must be in range [-1,1]")
-  }
-  
-  #----------------------------
-  #Calculate Margin given all inputs
-  #----------------------------
-  
-  rolling_vola <- vola(lambda = 0.94, returns = returns)
-  MPOR_returns <- rollsum(returns, MPOR)
-  vola_adj_returns <- MPOR_returns / rolling_vola[-c(1:2)] * rolling_vola[3]
-  
-  #-2 or something like that here for values at the end?
-  buckets <- rep(1:MPOR, length.out = (length(returns)-2))
-  
-  combined <- tibble(MPOR_returns = MPOR_returns, 
-                        buckets = buckets)
-  
-  bucket_VAR <- 
-    combined |>
-    group_by(buckets) |>
-    summarize(VAR = quantile(MPOR_returns, 0.025, na.rm = T))
-  
-  
-  VAR <- bucket_VAR |>
-    summarize(mean = mean(VAR))
 
-  VAR_upscaled <- VAR * factor
+calculate_FHS_margin <- function(product, start, end = NA, args){
   
-  return(VAR_upscaled[[1]])
+  returns <- 
+    master$returns |> 
+    filter(INST == product) |> 
+    filter(DATE <= start) |> 
+    select(-INST)
+  
+  cutoff <- max(which(returns$DATE >= end))+ 2*n_day
+  cutoff_date <- max(which(returns$DATE >= end))
+  returns <- returns[(1:cutoff),]
+  
+  #ensures that all arguments are specified in args
+  stopifnot(c("floor", "lambda", "MPOR", "factor",
+    "quantile", "n_day", "log_ret",
+    "absolute", "short") %in% names(args))
+  
+  # tryCatch(
+  #   expr = {
+  # require("tidyverse")
+  # require("zoo")
+  #   },
+  # erorr = stop("make sure that tidyverse and zoo are installed"))
+  # -------------------------
+  # ERROR HANDLING FOR ALL ARGUMENTS
+  # -------------------------
+  # returns
+  # if(!is.numeric(returns)){
+  #   stop("make sure that returns are a numeric vector")
+  #   }
+  #  #MPOR
+  #  if(!is.numeric(args$MPOR)){
+  # 
+  #    stop("MPOR must be an integer")
+  # 
+  #  } else if (!(as.integer(args$MPOR) == args$MPOR)){
+  # 
+  #    stop("MPOR must be an integer")
+  #  }
+  # 
+  #  #quantile
+  #  if(abs(args$quantile > 1)){
+  #    stop("Quantile must be in range [-1,1]")
+  #  }
+  # 
+  # returns are inverted for short positions
+  # if(isTRUE(args$short)){
+  #   returns <- returns*-1
+  # }
+  # ----------------------------
+  # Calculate Margin given all inputs
+  #----------------------------
+  #Calculate volatility for all desired days
+
+  weights <- (1-lambda)* ((lambda) ^c(0:(n_day-1)))
+  
+  vola <- rollapply(returns["LOG_RET"], n_day,
+                    FUN = function(x) 
+                      sum(x^2 *weights), align = "left")
+  
+  MPOR_returns <- rollsum(returns$LOG_RET[1: (nrow(vola)+2)], args$MPOR)
+  
+  #convert log returns to actual returns
+  MPOR_returns <- exp(MPOR_returns) - 1
+  
+  test <- tibble(vola = as.vector(vola),
+                 returns = as.vector(MPOR_returns))
+  
+  
+  #calculate margin for every date inside the rolling function
+  out <- rollapply(test, n_day, 
+            FUN = 
+              function(x){
+                
+              vol_adj_returns <- x[,2]/x[,1] * x[1,1][[1]]
+              
+              buckets <- rep(1:args$MPOR, length.out = args$n_day)
+              combined <- tibble(returns = unlist(vol_adj_returns), 
+                                 buckets = buckets)
+              
+              
+              bucket_VAR <- 
+                combined |>
+                group_by(buckets) |>
+                summarize(VAR = quantile(returns, 0.025, na.rm = T))
+              
+              
+              VAR <- bucket_VAR |>
+                summarize(mean = mean(VAR))
+              
+              VAR_upscaled <- VAR * args$factor
+              
+              return(abs(VAR_upscaled[[1]]))},
+              by.column = F)
+
+  out <- tibble(dates = returns$DATE[1:(cutoff_date + 2)],
+                margin = out)
+  return(out)
+  
 }
 
-#-------------------------------------
-#-------------------------------------
-#-------------------------------------
 
-calculate_margins(returns, dates, ...){
+#------------------------------------
+#Function which calculates the Stress Period VAR for given Dates
+#------------------------------------
+
+calculate_SP_margin <- function(product, start, end = NA){
   
-  margins <- rollapply(data = returns,
-                       width = n_day,
-                       FUN = function(x){
-                         calculate_margin(returns = x,
-                                          MPOR = MPOR,
-                                          factor = factor, log_ret = TRUE,
-                                          quantile = quantile,
-                                          absolute = FALSE,
-                                          lambda = lambda,
-                                          floor = FALSE))}
+  returns <- 
+    master$returns |> 
+    filter(INST == product) |> 
+    select(-INST)
   
-  out <- tibble(dates = dates, 
-                returns = margins)
+  stress_dates <- 
+    master$stress_periods |> 
+    filter(LIQ_GROUP == "PEQ01") |> 
+    select(-LIQ_GROUP)
   
-  return(out)
+  sp_var_df <- stress_dates |>
+    nest(data = c(CONF_LEVEL, DATE)) |> 
+    
+    mutate(data = map(data, function(x) x |>
+                        left_join(returns)|>
+                        na.omit()),
+           
+           data = map(data, function(x) x |>
+                        mutate(r = as.vector(rollsum(x["LOG_RET"], 3, fill = NA, align = "left")),
+                               bucket = rep(1:3, length.out = nrow(x)))),
+           
+           data = map(data, function(x) x |>
+                        group_by(bucket, CONF_LEVEL) |>
+                        summarize(var = quantile(r, (1-x[["CONF_LEVEL"]]/100), na.rm = T)) |> 
+                        summarize(VAR = mean(var)) |> 
+                        ungroup() |> 
+                        summarize(VAR = mean(VAR)))
+           ) |> 
+    unnest()
+      
+  
+  test <- returns |> mutate(INDEX = 1:nrow(returns)) |> select(-LOG_RET) |> 
+    nest(data = DATE) |> 
+    mutate(sp_var = map(data,
+        function(x) {
+          vec <- x[[1]][[1]] >= sp_var_df$VALID_FROM & x[[1]][[1]] <sp_var_df$VALID_TO
+    return(sp_var_df$VAR[vec])})) |> 
+    unnest(cols = c(data, sp_var)) |> 
+    filter(DATE <= start & DATE >= end) |> 
+    select(-INDEX)
+  return(test)
+}
+
+
+#--------------------------------
+#Input:
+#--------------------------------
+
+
+margin_calculator <- function(product, start, end = NA, args, out = NA){
+  
+  #end is set to start if it is not specified --> Guarantees return of a single observation
+  start <- as.Date(start, format = "%d-%m-%Y")
+  end <- as.Date(start, format = "%d-%m-%Y")
+  end <- ifelse(is.na(end), as.Date(start), end)
+  end <- as.Date(end)
+  
+  SP_Margin()
+  FHS <- calculate_FHS_Margin(product = product, start = start, end = end, args = args)
+  SP <- calculate_SP_margin(product = product, start = start, end = end)
+  
+  combined <- FHS |> left_join(SP, by = c("dates" = "DATE"))
+  combined$MARGIN <- pmax(combined$margin, combined$sp_var)
+  
+  margin <- combined |> select(dates, MARGIN)
+  
+  return(margin)
 }
