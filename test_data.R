@@ -5,40 +5,9 @@ library(readxl)
 library(lubridate)
 library(zoo)
 
-#import stress periods 
-stress_periods <- read_csv("Data/stress_periods.csv")
-stress_periods[1:3] <- lapply(stress_periods[1:3],
-                              function(x) as.Date(x, format = "%d/%m/%Y"))
-
-stress_periods <- stress_periods |> filter(Liq_Group == "PEQ01")
-dat <- read_xlsx("Data/selected_futures_returns.xlsx")
-dat <- dat |> filter(INSTRUMENT == "FGBX")
-
-FGBX <- dat |> select(-INSTRUMENT)
-dat$DATE <- as.Date(dat$DATE)
-dates <-  dat |>
-  filter(INSTRUMENT == "FGBX") |>
-  select(DATE) |>
-  as.vector()
-
-dates <- dates[[1]]
-
-FGBX <- dat |>
-  filter(INSTRUMENT == "FGBX") |>
-  select(LOG_RET_1D) |>
-  unlist()
-
-attr(FGBX, "names") <- NULL
-
 #--------------------------------------------------------------
-args <- list(MPOR = 3, 
-             factor = 1.37, 
-             quantile = 0.025, 
-             lambda = 0.94, 
-             n_day = 750,
-             floor = FALSE,
-             absolute = FALSE,
-             short = TRUE)
+
+
 
 a <- Sys.time()
 df_out <- calculate_margin_TS(returns = FGBX, dates = dates, args = args)
