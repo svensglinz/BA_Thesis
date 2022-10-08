@@ -1,7 +1,6 @@
 
 #' EWMA_Vol calculates the exponentially weighted volatility of a return 
 #' vector with a burn-in period of n_day and a decay factor lambda
-
 #' @param returns numerical vector of a financial return series
 #' @param n_day amount of days considered for volatility calculation
 #' @param lambda decay factor 
@@ -57,11 +56,7 @@ read_master <- function(path){
 #' @param lambda
 #' @return  
 #' @examples 
-#' 
 
-#is this really necessary? we already have the function above!!!!
-#if yes, add that returns can be aggregated over multiple days
-#calculates volatility of a product between two user-defined dates
 calculate_vola <- function(product, start, end = NA, lambda, n_day){
   
   start <- as.Date(start, format = "%d/%m/%Y")
@@ -100,7 +95,12 @@ calculate_vola <- function(product, start, end = NA, lambda, n_day){
 #' @return data frame with columns data & FHS_Margin which contains one margin 
 #' calculation per date in between the specified date intervals
 #' @examples 
-#' ... --> SPECIFY EXAMPLE
+#' #store master file with master function defined above 
+#' master <- read_master(path)
+#' #specify arguments in args list 
+#' args <- list(short = F, lambda = 0.975, MPOR = 3, n_day = 750, ...)
+#' #Calculate Margin for the Instrument "FESX"
+#' FHS_Margin <- calculate_FHS_margin("FESX", "01/01/2020", "01/05/2020", args)
 
 calculate_FHS_margin <- function(product, start, end = NA, args){
   
@@ -112,8 +112,7 @@ calculate_FHS_margin <- function(product, start, end = NA, args){
     filter(INST == product) |> 
     filter(DATE <= end) |> 
     select(-INST) |> 
-    na.omit() #<<--------------- is this the best thing to do here? do warning 
-  #if too many nas exist!!!
+    na.omit()
   
   #cutoff date selected as real cutoff + n_day for calculation of last volatility 
   #observation!
@@ -165,7 +164,8 @@ calculate_FHS_margin <- function(product, start, end = NA, args){
   
   #calculate mean over 1:3 bucket for each volatility and take mean. This is to smoothen 
   #out the revaluation factor and it is below joined onto the data frame!
-  revalue_factor <- rep(rollapply(vol_returns$vola, args$MPOR, fill = NULL,
+  revalue_factor <- 
+    rep(rollapply(vol_returns$vola, args$MPOR, fill = NULL,
                               align = "left", by = 3, 
                               FUN = mean), args$MPOR)
   
@@ -192,10 +192,10 @@ vol_returns <- vol_returns |>
     arrange(desc(DATE))
   
   #calculate the mean over three buckets as the final margin to smoothen out statistical fluctuations
-    d <- d |> mutate(test = rollapply(d$FHS_Margin, width = args$MPOR,
-                                      fill = NA, align = "left", FUN = mean)) |> 
+    d <- d |> 
+      mutate(test = rollapply(d$FHS_Margin, width = args$MPOR,
+                              fill = NA, align = "left", FUN = mean)) |> 
       na.omit()
-  
   return(d)
 }
 
@@ -244,14 +244,16 @@ calculate_SP_margin <- function(product, start, end = NA, args){
   #add bucket columns and rolling 3 day returns 
   sp_var_df <- sp_var_df |> 
     mutate(data = map(data, function(x) x |> 
-                        mutate(r = as.vector(rollsum(x["LOG_RET"], 3, fill = NA, align = "left")),
+                        mutate(r = as.vector(rollsum(x["LOG_RET"], 3,
+                                                     fill = NA, align = "left")),
                                bucket = rep(1:3, length.out = nrow(x)))
     ))
+  
   #calculate VAR per bucket and per validity interval
   sp_var_df <- sp_var_df |> 
     mutate(data = map(data, function(x) x |>
                         group_by(bucket) |> 
-                        summarize(var = quantile(r, 1-x[["CONF_LEVEL"]][1]/ 100, na.rm = T)) |> 
+                        summarize(var = quantile(r,1-x[["CONF_LEVEL"]][1]/ 100, na.rm = T)) |> 
                         ungroup() |> 
                         summarize(var = abs(mean(var)))
     )) |> 
@@ -299,14 +301,13 @@ margin_calculator <- function(product, start, end = NA, args){
     left_join(SP, by = c("DATE"))
   
   #larger of floor or FHS Margin!
-  combined$test <- pmax(-combined$test, combined$sp_var)
+  combined$test <- pmax(combined$test, combined$sp_var)
   
   #output is only date and margin information (should be adjusted above for the FHS and SP Margin 
   #as well!)
   margin <- combined |>
     select(DATE, test)
   
-  #function output
   return(margin)
 }
 
