@@ -1,53 +1,41 @@
 
-#---------------------------------------------------------
-#DESCRIPTION: 
+#' EWMA_Vol calculates the exponentially weighted volatility of a return 
+#' vector with a burn-in period of n_day and a decay factor lambda
 
-
-#---------------------------------------------------------
-
-
-#calculates the exponentially weighted volatility of
-#a given return vector with a burn-in period of n-days and a 
-#decay factor of lambda
-
-#----------------------------------------------------------
-#' Function description
-#' @param returns 
-#' @param n_day
-#' @param lambda
-#' @return  
+#' @param returns numerical vector of a financial return series
+#' @param n_day amount of days considered for volatility calculation
+#' @param lambda decay factor 
+#' @return vector of calculated volatilities
 #' @examples 
-#' 
-#----------------------------------------------------------
+#' returns <- rnorm(n = 500, sd = 1, mean = 0)
+#' n_day <- 50
+#' lambda <- 0.95
+#' EWMA_vol(returns, n_day, lambda)
 
 EWMA_vol <- function(returns, n_day, lambda){
   
   #calculate return weights
   weight <- (1-lambda)* ((lambda) ^c(0:(n_day-1))) 
   
-  #rolling calculation of volatilities
+  #rolling calculation of volatility observations
   out <- rollapply(returns, n_day, align = "left", fill = NA, FUN = function(x){
     vol <- sqrt(sum(weight*x^2))
     return(vol)
   })
-  
-  #function output
+
   return(out)
 }
 
-#function which imports tha master excel-sheet where all 
-#essential information is stored and properly formats it for further use
-#in the below functions
+#' function which imports tha master excel-sheet where all 
+#' essential information is stored and properly formats it for further use
+#' in the below functions
 
-#----------------------------------------------------------
-#' Function description
-#' @param returns 
-#' @param n_day
-#' @param lambda
-#' @return  
+#' @param path local path where excel sheet with returns is stored
+#' @return list which contains as sub-lists each individual sheet 
+#' of the excel file 
 #' @examples 
-#' 
-#----------------------------------------------------------
+#' path <- C:/Users/sveng/OneDrive/Dokumente/Schule/Studium/HSG/Thesis/BA_Thesis/Data
+#' master_file <- read_master(path)
 
 read_master <- function(path){
   stress_periods <- read_excel(path, sheet = "stress_periods")
@@ -57,15 +45,12 @@ read_master <- function(path){
   returns <- read_excel(path, sheet = "returns")
   returns[1] <- as.Date(returns[[1]])
   
-  #function output / stress_periods and returns of all possible instruments 
-  #in one list each
   out <- list(stress_periods = stress_periods, 
               returns = returns)
   
   return(out)
 }
 
-#----------------------------------------------------------
 #' Function description
 #' @param returns 
 #' @param n_day
@@ -73,7 +58,6 @@ read_master <- function(path){
 #' @return  
 #' @examples 
 #' 
-#----------------------------------------------------------
 
 #is this really necessary? we already have the function above!!!!
 #if yes, add that returns can be aggregated over multiple days
@@ -104,19 +88,19 @@ calculate_vola <- function(product, start, end = NA, lambda, n_day){
   return(out)
 }
 
-#function which calculates the filtered historical margin over 
-#the two given dates for a specified instrument (product) and 
-#the arguments stored in the list args
-
-#----------------------------------------------------------
-#' Function description
-#' @param returns 
-#' @param n_day
-#' @param lambda
-#' @return  
+#' FUNCTION DESCRIPTION 
+#' @param product name of product (string) for which margin should be calculated. 
+#' Name must be in column INST of the masterfile
+#' @param start string in format "dd/mm/yyyy". Start period for which margin should 
+#' be calculated
+#' @param end string in format "dd/mm/yyyy". End period for which margin should 
+#' be calculated
+#' @param args list with elements #short (T/F), #lambda (numeric), #MPOR (numeric),
+#' #... which are needed to calculate a Margin
+#' @return data frame with columns data & FHS_Margin which contains one margin 
+#' calculation per date in between the specified date intervals
 #' @examples 
-#' 
-#----------------------------------------------------------
+#' ... --> SPECIFY EXAMPLE
 
 calculate_FHS_margin <- function(product, start, end = NA, args){
   
@@ -215,15 +199,20 @@ vol_returns <- vol_returns |>
   return(d)
 }
 
-#----------------------------------------------------------
-#' Function description
-#' @param returns 
-#' @param n_day
-#' @param lambda
-#' @return  
+
+#' FUNCTION DESCRIPTION 
+#' @param product name of product (string) for which margin should be calculated. 
+#' Name must be in column INST of the masterfile
+#' @param start string in format "dd/mm/yyyy". Start period for which margin should 
+#' be calculated
+#' @param end string in format "dd/mm/yyyy". End period for which margin should 
+#' be calculated
+#' @param args list with elements #short (T/F), #lambda (numeric), #MPOR (numeric),
+#' #... which are needed to calculate a Margin
+#' @return data frame with columns data & FHS_Margin which contains one margin 
+#' calculation per date in between the specified date intervals
 #' @examples 
-#' 
-#----------------------------------------------------------
+#' ... --> SPECIFY EXAMPLE
 
 calculate_SP_margin <- function(product, start, end = NA, args){
   
@@ -283,15 +272,19 @@ calculate_SP_margin <- function(product, start, end = NA, args){
   return(test)
 }
 
-#----------------------------------------------------------
-#' Function description
-#' @param returns 
-#' @param n_day
-#' @param lambda
-#' @return  
+#' FUNCTION DESCRIPTION 
+#' @param product name of product (string) for which margin should be calculated. 
+#' Name must be in column INST of the masterfile
+#' @param start string in format "dd/mm/yyyy". Start period for which margin should 
+#' be calculated
+#' @param end string in format "dd/mm/yyyy". End period for which margin should 
+#' be calculated
+#' @param args list with elements #short (T/F), #lambda (numeric), #MPOR (numeric),
+#' #... which are needed to calculate a Margin
+#' @return data frame with columns data & FHS_Margin which contains one margin 
+#' calculation per date in between the specified date intervals
 #' @examples 
-#' 
-#----------------------------------------------------------
+#' ... --> SPECIFY EXAMPLE
 
 margin_calculator <- function(product, start, end = NA, args){
   
