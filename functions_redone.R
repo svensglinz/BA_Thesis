@@ -310,4 +310,3 @@ margin_calculator <- function(product, start, end = NA, args){
   
   return(margin)
 }
-

@@ -7,8 +7,6 @@ library(zoo)
 
 #--------------------------------------------------------------
 
-
-
 a <- Sys.time()
 df_out <- calculate_margin_TS(returns = FGBX, dates = dates, args = args)
 b <- Sys.time()
