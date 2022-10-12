@@ -114,9 +114,13 @@ calculate_FHS_margin <- function(product, start, end = NA, args){
     select(-INST) |> 
     na.omit()
   
+  if(args$short){
+    returns$LOG_RET <- returns$LOG_RET *-1
+  }
+  
   #cutoff date selected as real cutoff + n_day for calculation of last volatility 
   #observation!
-  cutoff <- max(which(returns$DATE >= start))+ args$n_day
+  cutoff <- max(which(returns$DATE >= start))+ 2*args$n_day
   
   #cutoff adjusted that the nrow are divisible by MPOR (such that there are no 
   #cut off periods, ie. each period/ bucket is represented the same amount of times 
@@ -144,7 +148,7 @@ calculate_FHS_margin <- function(product, start, end = NA, args){
     nest(data = -buckets) |> 
     mutate(
       vola = map(data, function(x){
-        EWMA_vol(x[["MPOR_returns"]], args$n_day/ args$MPOR, args$lambda)
+        EWMA_vol(x[["MPOR_returns"]], (args$n_day/ args$MPOR), args$lambda)
           })
     ) |>
     unnest(cols = c("data", "vola")) |> 
@@ -181,7 +185,7 @@ vol_returns <- vol_returns |>
       rollapply(x, width = args$n_day/args$MPOR, align = "left", fill = NA,
                 by.column = F, FUN = function(x){
         #revalue returns
-        reval <- as.numeric(x[,"devalued"]) * max(quantile(as.numeric(x[,"vola"]), .5),
+        reval <- as.numeric(x[,"devalued"]) * max(quantile(as.numeric(x[,"vola"]), .5)[[1]],
                                                   as.numeric(x[, "revalue_factor"][1]))
         #output which is upscaled FHS_Margin
         out <- quantile(reval, ((1-args$quantile)/2), na.rm = T)[[1]] * args$factor
@@ -193,8 +197,8 @@ vol_returns <- vol_returns |>
   
   #calculate the mean over three buckets as the final margin to smoothen out statistical fluctuations
     d <- d |> 
-      mutate(test = rollapply(d$FHS_Margin, width = args$MPOR,
-                              fill = NA, align = "left", FUN = mean)) |> 
+      mutate(test = abs(rollapply(d$FHS_Margin, width = args$MPOR,
+                              fill = NA, align = "left", FUN = mean))) |> 
       na.omit()
   return(d)
 }
@@ -310,3 +314,42 @@ margin_calculator <- function(product, start, end = NA, args){
   
   return(margin)
 }
+
+#' @param margins
+#' @return 
+#' @examples 
+#'
+#'
+
+procyclicality_measures <- function(margins, start, end){
+  
+  margins <- margins |> 
+    arrange(DATE)
+  
+  #we can specify the dates for this as well or should we use margins just 
+  #as a vector input???
+  
+  start = as.Date(start, format = "%d/%m/%Y")
+  end = as.Date(end, format = "%d/%m/%Y")
+  
+  peak_to_through <- max(margins$test, na.rm = T)/min(margins$test, na.rm = T)
+  max_1d <- max(diff(margins$test, lag = 1) / margins$test[-length(margins$test)], na.rm = T)
+  max_5d <- max(diff(margins$test, lag = 5) / margins$test[-c(length(margins$test):(length(margins$test)-4))], na.rm = T)
+  max_30d <- max(diff(margins$test, lag = 20) / margins$test[-c(length(margins$test):(length(margins$test)-19))], na.rm = T) #30days = 20 business days!
+  
+  out <- tibble(type = c("peak_to_through", "max_1d", "max_5d", "max_30d"),
+                value = c(peak_to_through, max_1d, max_5d, max_30d))
+  return(out)
+}
+
+#returns some goodness tests defined in the paper by which we measure a margin model 
+#How is this connected to the default fund thing? 
+goodness_criteria <- function(margins, returns, ...){
+  
+  N_breaches <- NULL
+  perc_breaches <- NULL
+  avg_shortfall <- NULL
+  costs <- NULL
+}
+
+
