@@ -8,6 +8,7 @@ library(ggthemes)
 library(ggsci)
 library(ggExtra)
 
+source("functions_redone.R")
 ####################
 #EWMA VOLATILITY CALCULATION
 ######################
@@ -152,6 +153,40 @@ collateral |>
   geom_area(position = "stack")+
   scale_fill_jama()
 
+#percentage contribution in collateral 
+grouped_daily <- 
+  collateral |>
+  group_by(FACT_DATE) |>
+  summarize(total = sum(MARKET_VALUE_EUR))
+
+collateral <- collateral |>
+  left_join(grouped_daily, by = c("FACT_DATE")) |> 
+  mutate(perc = MARKET_VALUE_EUR / total)
+
+col_plot <- 
+  collateral |> 
+  filter(SECURITY_TYPE %in% c("BANK BONDS", "CORPORATE BONDS", "SOVEREIGN GOVERNMENT BONDS",
+                              "STATE AGENCIES", "STOCKS", "STATE/MUNICIPAL BONDS", "null")) |> 
+  ggplot(aes(x = FACT_DATE, y = perc))+
+  geom_line()+
+  geom_vline(xintercept = as.Date("2020-03-01"), color = "red", size = 2, alpha = .2)+
+  scale_y_continuous(labels = scales::percent_format())+
+  labs(title = "",
+       y = "",
+       x = "",
+       color = "")+
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(size = 12, face = "bold"),
+        panel.grid = element_line(color = "grey"),
+        strip.background = element_rect(color = "grey", fill = "grey"),
+        panel.background = element_rect(fill = "white"),
+        strip.text = element_text(size = 6))+
+  facet_wrap(~SECURITY_TYPE, scales = "free_y")
+
+ggsave("graphs/collateral.png", plot = col_plot, device = "png", dpi = 300, height = 8.5, width = 15.9, units = "cm")
+
+
 #default fund 
 default_fund <- read_csv("Data/Eurex_Data/Default Fund Requirement by Date.csv",
                          col_types = cols(FACT_DATE = col_date(format = "%d/%m/%Y")))
@@ -272,6 +307,7 @@ FESX_short <- FESX_plot |> filter(type == "short") |>
 
 FESX_plot <-  bind_rows(FESX_short, FESX_long)
 FESX_plot$size <- ifelse(FESX_plot$breach == "red", 2, 0.75)
+FESX_plot <- FESX_plot |> arrange(breach)
 
 FESX_out <- FESX_plot |> 
   ggplot(aes(x = DATE))+
@@ -305,53 +341,55 @@ args_short <- list(MPOR = 3, factor = 1.37, quantile = 0.974, lambda = 0.9593,
                    n_day = 750, floor = FALSE, absolute = FALSE, liq_group  = "PFI01",
                    short = TRUE)
 
-FESX_long <- margin_calculator(product = "FGBL", start = "01/01/2000", end = "01/01/2021", args = args_long)
-FESX_short <- margin_calculator(product = "FGBL", start = "01/01/2000", end = "01/01/2021", args = args_short)
-FESX_long$test <- -FESX_long$test
-FESX_long$type <- "long"
-FESX_short$type <- "short"
+FGBL_long <- margin_calculator(product = "FGBL", start = "01/01/2000",
+                               end = "01/01/2021", args = args_long) |> 
+  mutate(type = "long", 
+         test = -test)
 
-FESX_margin <- bind_rows(FESX_long, FESX_short)
+FGBL_short <- margin_calculator(product = "FGBL", start = "01/01/2000",
+                                end = "01/01/2021", args = args_short) |> 
+  mutate(type = "short")
 
-FESX <- master$returns |> filter(INST == "FGBL") |> select(DATE, LOG_RET) |> 
+FGBL <- master$returns |> filter(INST == "FGBL") |> select(DATE, LOG_RET) |> 
   arrange(DATE)
-FESX$MPOR_RET <- rollapply(FESX$LOG_RET, 3, FUN = function(x) exp(sum(x))-1,
+
+FGBL$MPOR_RET <- rollapply(FGBL$LOG_RET, 3, FUN = function(x) exp(sum(x))-1,
                            by.column = F, align = "left", fill = NA)
 
-FESX_plot <- FESX_margin |> left_join(FESX, by = c("DATE"))
-
-FESX_long <- FESX_plot |> filter(type == "long") |> 
-  mutate(breach = ifelse(MPOR_RET < test, "red", "black"))
-
-FESX_short <- FESX_plot |> filter(type == "short") |> 
+FGBL_short <- FGBL_short |> left_join(FGBL, by = c("DATE")) |> 
   mutate(breach = ifelse(MPOR_RET > test, "red", "black"))
 
-FESX_plot <-  bind_rows(FESX_short, FESX_long)
-FESX_plot$size <- ifelse(FESX_plot$breach == "red", 3, 1.5)
+FGBL_long <- FGBL_long |> left_join(FGBL, by = c("DATE")) |> 
+  mutate(breach = ifelse(MPOR_RET < test, "red", "black"))
 
-FESX_out <- FESX_plot |> 
+FGBL_plot <-  bind_rows(FGBL_short, FGBL_long)
+FGBL_plot$size <- ifelse(FGBL_plot$breach == "red", 3, 1.5)
+FGBL_plot <- FGBL_plot |> arrange(breach)
+FGBL_out <- FGBL_plot |> 
   ggplot(aes(x = DATE))+
   geom_line(aes(y = test, group = type, color = type))+
-  geom_point(aes(y = MPOR_RET), color =FESX_plot$breach, size = FESX_plot$size)+
+  geom_point(aes(y = MPOR_RET), color =FGBL_plot$breach, size = FGBL_plot$size)+
   theme(panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
         panel.background = element_rect(color = "black", fill = "white"),
         legend.position = "bottom",
         plot.title = element_text(size = 12, face = "bold"))+
-  scale_y_continuous(breaks = seq(from = -0.2, to = 0.2, by = 0.05),
+  scale_y_continuous(breaks = seq(from = -0.04, to = 0.4, by = 0.01),
                      labels = scales::percent_format())+
   scale_x_date(breaks = seq.Date(from = as.Date("2006-01-01"),
                                  to = as.Date("2023-01-01"), by = "2 years"),
-               labels = date_format("%Y"))+
-  labs(title = "Margin Requirment FESX",
+               labels = scales::date_format("%Y"))+
+  labs(title = "Margin Requirment FGBL",
        y = "Margin in %",
        x = "Date",
        color = "")+
   scale_color_jama()
 
-ggsave("graphs/FESX_plot.png", plot = FESX_out, device = "png", dpi = 300, height = 8.54, width = 16.1, units = "cm")
+ggsave("graphs/FGBL_plot.png", plot = FGBL_out, device = "png", dpi = 300, height = 8.54, width = 16.1, units = "cm")
 
-#do the plot for FSMI 
+#####do plot for FSMI 
+
+#!! be careful lambda is different for fixed income vs. equity and also the quantile!!!!!!
 args_long <- list(MPOR = 3, factor = 1.37, quantile = 0.974, lambda = 0.9593, 
                   n_day = 750, floor = FALSE, absolute = FALSE, liq_group  = "PEQ01",
                   short = FALSE)
@@ -360,34 +398,34 @@ args_short <- list(MPOR = 3, factor = 1.37, quantile = 0.974, lambda = 0.9593,
                    n_day = 750, floor = FALSE, absolute = FALSE, liq_group  = "PEQ01",
                    short = TRUE)
 
-FESX_long <- margin_calculator(product = "FSMI", start = "01/01/2000", end = "01/01/2021", args = args_long)
-FESX_short <- margin_calculator(product = "FSMI", start = "01/01/2000", end = "01/01/2021", args = args_short)
-FESX_long$test <- -FESX_long$test
-FESX_long$type <- "long"
-FESX_short$type <- "short"
+FSMI_long <- margin_calculator(product = "FSMI", start = "01/01/2000",
+                               end = "01/01/2021", args = args_long) |> 
+  mutate(type = "long", 
+         test = -test)
 
-FESX_margin <- bind_rows(FESX_long, FESX_short)
+FSMI_short <- margin_calculator(product = "FSMI", start = "01/01/2000",
+                                end = "01/01/2021", args = args_short) |> 
+  mutate(type = "short")
 
-FESX <- master$returns |> filter(INST == "FSMI") |> select(DATE, LOG_RET) |> 
+FSMI <- master$returns |> filter(INST == "FSMI") |> select(DATE, LOG_RET) |> 
   arrange(DATE)
-FESX$MPOR_RET <- rollapply(FESX$LOG_RET, 3, FUN = function(x) exp(sum(x))-1,
+
+FSMI$MPOR_RET <- rollapply(FSMI$LOG_RET, 3, FUN = function(x) exp(sum(x))-1,
                            by.column = F, align = "left", fill = NA)
 
-FESX_plot <- FESX_margin |> left_join(FESX, by = c("DATE"))
-
-FESX_long <- FESX_plot |> filter(type == "long") |> 
-  mutate(breach = ifelse(MPOR_RET < test, "red", "black"))
-
-FESX_short <- FESX_plot |> filter(type == "short") |> 
+FSMI_short <- FSMI_short |> left_join(FSMI, by = c("DATE")) |> 
   mutate(breach = ifelse(MPOR_RET > test, "red", "black"))
 
-FESX_plot <-  bind_rows(FESX_short, FESX_long)
-FESX_plot$size <- ifelse(FESX_plot$breach == "red", 3, 1.5)
+FSMI_long <- FSMI_long |> left_join(FSMI, by = c("DATE")) |> 
+  mutate(breach = ifelse(MPOR_RET < test, "red", "black"))
 
-FESX_out <- FESX_plot |> 
+FSMI_plot <-  bind_rows(FSMI_short, FSMI_long)
+FSMI_plot$size <- ifelse(FSMI_plot$breach == "red", 3, 1.5)
+FSMI_plot <- FSMI_plot |> arrange(breach)
+FSMI_out <- FSMI_plot |> 
   ggplot(aes(x = DATE))+
   geom_line(aes(y = test, group = type, color = type))+
-  geom_point(aes(y = MPOR_RET), color =FESX_plot$breach, size = FESX_plot$size)+
+  geom_point(aes(y = MPOR_RET), color =FSMI_plot$breach, size = FSMI_plot$size)+
   theme(panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
         panel.background = element_rect(color = "black", fill = "white"),
@@ -397,14 +435,14 @@ FESX_out <- FESX_plot |>
                      labels = scales::percent_format())+
   scale_x_date(breaks = seq.Date(from = as.Date("2006-01-01"),
                                  to = as.Date("2023-01-01"), by = "2 years"),
-               labels = date_format("%Y"))+
-  labs(title = "Margin Requirment FESX",
+               labels = scales::date_format("%Y"))+
+  labs(title = "Margin Requirment FSMI",
        y = "Margin in %",
        x = "Date",
        color = "")+
   scale_color_jama()
 
-ggsave("graphs/FESX_plot.png", plot = FESX_out, device = "png", dpi = 300, height = 8.54, width = 16.1, units = "cm")
+ggsave("graphs/FSMI_plot.png", plot = FSMI_out, device = "png", dpi = 300, height = 8.54, width = 16.1, units = "cm")
 
 
 ##for FGBX 

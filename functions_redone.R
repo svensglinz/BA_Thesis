@@ -352,4 +352,3 @@ goodness_criteria <- function(margins, returns, ...){
   costs <- NULL
 }
 
-
