@@ -25,10 +25,9 @@ EWMA_vol <- function(returns, n_day, lambda){
   return(out)
 }
 
-#' function which imports tha master excel-sheet where all 
+#' function which imports the master excel-sheet where all 
 #' essential information is stored and properly formats it for further use
 #' in the below functions
-
 #' @param path local path where excel sheet with returns is stored
 #' @return list which contains as sub-lists each individual sheet 
 #' of the excel file 
@@ -102,11 +101,12 @@ calculate_vola <- function(product, start, end = NA, lambda, n_day){
 #' #Calculate Margin for the Instrument "FESX"
 #' FHS_Margin <- calculate_FHS_margin("FESX", "01/01/2020", "01/05/2020", args)
 
-calculate_FHS_margin <- function(product, start, end = NA, args){
+calculate_FHS_margin <- function(product, start, end = NA, args, steps = FALSE){
   
   start <- as.Date(start, format = "%d/%m/%Y")
   end <- as.Date(end, format = "%d/%m/%Y")
   
+  #get returns of product from masterfile
   returns <- 
     master$returns |> 
     filter(INST == product) |> 
@@ -118,13 +118,10 @@ calculate_FHS_margin <- function(product, start, end = NA, args){
     returns$LOG_RET <- returns$LOG_RET *-1
   }
   
-  #cutoff date selected as real cutoff + n_day for calculation of last volatility 
-  #observation!
+  #cutoff date + values needed for vola calculation
   cutoff <- max(which(returns$DATE >= start))+ 2*args$n_day
   
-  #cutoff adjusted that the nrow are divisible by MPOR (such that there are no 
-  #cut off periods, ie. each period/ bucket is represented the same amount of times 
-  #in the data set)
+  #adjusted cutoff that rows are divisible by MPOR
   adj_cutoff <- round(cutoff/args$MPOR)*args$MPOR
   
   #shorten return vector for faster calculation!
@@ -197,10 +194,17 @@ vol_returns <- vol_returns |>
   
   #calculate the mean over three buckets as the final margin to smoothen out statistical fluctuations
     d <- d |> 
-      mutate(test = abs(rollapply(d$FHS_Margin, width = args$MPOR,
+      mutate(FHS_Margin = abs(rollapply(d$FHS_Margin, width = args$MPOR,
                               fill = NA, align = "left", FUN = mean))) |> 
       na.omit()
-  return(d)
+  
+  #return output
+    if (steps) {
+      return(d)
+    } else {
+      return(d |> select(DATE, FHS_Margin))
+    }
+    
 }
 
 
@@ -228,7 +232,6 @@ calculate_SP_margin <- function(product, start, end = NA, args){
     filter(INST == product) |> 
     select(-INST)
   
-  #invert returns for short positions
   if (args$short){
     returns["LOG_RET"] <- returns["LOG_RET"]*-1
   }
@@ -292,42 +295,37 @@ calculate_SP_margin <- function(product, start, end = NA, args){
 #' @examples 
 #' ... --> SPECIFY EXAMPLE
 
-margin_calculator <- function(product, start, end = NA, args){
+margin_calculator <- function(product, start, end = NA, args, steps = FALSE){
   
   #formatting of dates
   start <- as.Date(start, format = "%d/%m/%Y")
   end <- as.Date(end, format = "%d/%m/%Y")
   
-  FHS <- calculate_FHS_margin(product = product, start = start, end = end, args = args)
+  FHS <- calculate_FHS_margin(product = product, start = start, end = end, args = args, steps = steps)
   SP <- calculate_SP_margin(product = product, start = start, end = end, args = args)
   
   combined <- FHS |>
     left_join(SP, by = c("DATE"))
   
-  #larger of floor or FHS Margin!
-  combined$test <- pmax(combined$test, combined$sp_var)
+  #larger of floor or FHS Margin
+  combined$Margin <- pmax(combined$FHS_Margin, combined$sp_var)
   
-  #output is only date and margin information (should be adjusted above for the FHS and SP Margin 
-  #as well!)
-  margin <- combined |>
-    select(DATE, test)
-  
-  return(margin)
+  #conditional output
+  if (steps){
+   return(combined)
+  }
+   return(combined |> select(DATE, Margin))
 }
 
+#' Function Description
 #' @param margins
 #' @return 
 #' @examples 
-#'
-#'
 
 procyclicality_measures <- function(margins, start, end){
   
   margins <- margins |> 
     arrange(DATE)
-  
-  #we can specify the dates for this as well or should we use margins just 
-  #as a vector input???
   
   start = as.Date(start, format = "%d/%m/%Y")
   end = as.Date(end, format = "%d/%m/%Y")
@@ -342,13 +340,42 @@ procyclicality_measures <- function(margins, start, end){
   return(out)
 }
 
+#' @param margins
+#' @return 
+#' @examples 
 #returns some goodness tests defined in the paper by which we measure a margin model 
 #How is this connected to the default fund thing? 
-goodness_criteria <- function(margins, returns, ...){
+
+goodness_criteria <- function(margin_df, direction, start, end){
   
-  N_breaches <- NULL
-  perc_breaches <- NULL
-  avg_shortfall <- NULL
-  costs <- NULL
+  start = as.Date(start, format = "%d/%m/%Y")
+  end = as.Date(end, format = "%d/%m/%Y")
+  
+  if (direction == "long"){
+    margin_df$Margin <- margin_df$Margin *-1 
+  }
+  
+  N_breaches <- sum(margin_df$Margin > margin_df$MPOR_returns, na.rm = T) #account for NA= T (check)
+  #below when calculating percentage
+  perc_breaches <- (N_breaches / length(na.omit(margin_df$MPOR_returns)))*100
+  realized_conf_level <- 100-perc_breaches
+  
+  #gives average shortfall in % not in absolute terms!
+  margin_df |> filter(Margin > MPOR_returns) |> 
+    mutate(shortfall = MPOR_returns - Margin) |> 
+    summarize(avg_shortfall = mean(shortfall))
+  
+  #also calculate maximum historical shortfall ? --> More appropriate for 
+  #default fund calculation???
+  #gives average shortfall in % not in absolute terms!
+  margin_df |> filter(Margin > MPOR_returns) |> 
+    mutate(shortfall = MPOR_returns - Margin) |> 
+    summarize(avg_shortfall = min(shortfall))
+  
+  #should we divide this by some kind of baseline scenario ? in what 
+ #measurement should we report this??? --> rapid and strong changes in day to day requirements 
+  #should add a multiplier to costs!!! --> Since stress is also cost and also additional financing costs!!!!!!
+  costs <- sum(margins$test, na.rm = T)
 }
+
 

@@ -9,9 +9,11 @@ library(ggsci)
 library(ggExtra)
 
 source("functions_redone.R")
-####################
-#EWMA VOLATILITY CALCULATION
-######################
+################################################################################
+#EWMA VOLATILITY CALCULATION                                                   #
+#                                                                              #
+#                                                                              #
+################################################################################
 
 vol_FESX <- calculate_vola(product = "FESX", start = start, end = end, lambda = lambda, n_day = n_day) |> 
   rename(date = returns, FESX = vola)
@@ -59,9 +61,11 @@ vol_plot <-
 ggsave("graphs/volplot.png", plot = vol_plot, device = "png", dpi = 300, height = 6.03, width = 15.9, units = "cm")
 
 
-##############################################
-#MARGIN CALCULATIONS
-##############################################
+################################################################################
+#EWMA VOLATILITY CALCULATION                                                   #
+#                                                                              #
+#                                                                              #
+################################################################################
 
 
 FESX_Margin_long <- margin_calculator(product = "FESX", start = start, end = end, args = args_long)
@@ -90,7 +94,12 @@ theme_minimal()+
         plot.title = element_text(size = 12, face = "bold"))+
   scale_color_jama()
 
-#####################################################################
+################################################################################
+#EWMA VOLATILITY CALCULATION                                                   #
+#                                                                              #
+#                                                                              #
+################################################################################
+
 #check out how this was done in previous data file!
 IMC <-  read_csv("Data/Eurex_Data/IMC_Redone.csv")
 IMC <- IMC |>
@@ -116,6 +125,12 @@ securities <- read_csv("Data/Eurex_Data/eligible_securities.csv",
 
 #also here in title provide average number of observations per single date  ????
 
+################################################################################
+#EWMA VOLATILITY CALCULATION                                                   #
+#                                                                              #
+#                                                                              #
+################################################################################
+
 securities_plot <- securities |> group_by(SECURITY_TYPE, FACT_DATE) |> 
   filter(SECURITY_TYPE %in% c("BANK BONDS", "CORPORATE BONDS",
                               "SOVEREIGN GOVERNMENT BONDS", "STATE AGENCIES",
@@ -140,6 +155,13 @@ ggsave("graphs/securities_plot.png", plot = securities_plot, device = "png", dpi
 
 
 #collateral value analysis during the crisis!
+
+################################################################################
+#EWMA VOLATILITY CALCULATION                                                   #
+#                                                                              #
+#                                                                              #
+################################################################################
+
 
 collateral <- read_csv("Data/Eurex_Data/Collateral per Security Type.csv",
                        col_types = cols(FACT_DATE = col_date(format = "%d/%m/%Y"),
@@ -185,6 +207,13 @@ col_plot <-
   facet_wrap(~SECURITY_TYPE, scales = "free_y")
 
 ggsave("graphs/collateral.png", plot = col_plot, device = "png", dpi = 300, height = 8.5, width = 15.9, units = "cm")
+
+
+################################################################################
+#EWMA VOLATILITY CALCULATION                                                   #
+#                                                                              #
+#                                                                              #
+################################################################################
 
 
 #default fund 
@@ -271,6 +300,12 @@ empty_bilateral <-
   labs(title = "Bilateral Clearing")
 
 ggsave("graphs/empty_bilateral.png", plot = empty_bilateral, device = "png", dpi = 300, height = 6.63, width = 7.34, units = "cm")
+
+################################################################################
+#EWMA VOLATILITY CALCULATION                                                   #
+#                                                                              #
+#                                                                              #
+################################################################################
 
 
 #plot of baseline scenario for FESX and FGBX (or should we take FGBL as well ??? Check out website 
@@ -399,9 +434,9 @@ args_short <- list(MPOR = 3, factor = 1.37, quantile = 0.974, lambda = 0.9593,
                    short = TRUE)
 
 FSMI_long <- margin_calculator(product = "FSMI", start = "01/01/2000",
-                               end = "01/01/2021", args = args_long) |> 
+                               end = "01/01/2021", args = args_long, steps = T) |> 
   mutate(type = "long", 
-         test = -test)
+         Margin = -Margin)
 
 FSMI_short <- margin_calculator(product = "FSMI", start = "01/01/2000",
                                 end = "01/01/2021", args = args_short) |> 
@@ -422,6 +457,7 @@ FSMI_long <- FSMI_long |> left_join(FSMI, by = c("DATE")) |>
 FSMI_plot <-  bind_rows(FSMI_short, FSMI_long)
 FSMI_plot$size <- ifelse(FSMI_plot$breach == "red", 3, 1.5)
 FSMI_plot <- FSMI_plot |> arrange(breach)
+
 FSMI_out <- FSMI_plot |> 
   ggplot(aes(x = DATE))+
   geom_line(aes(y = test, group = type, color = type))+
