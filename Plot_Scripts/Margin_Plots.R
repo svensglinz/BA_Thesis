@@ -43,7 +43,6 @@ args_short_FGBX <-
 
 
 #Visualization of Graph XX XX in final Thesis (label with graph number here to find easier!)
-
 FESX_Margin_long <-
   margin_calculator(product = "FESX",start = start_date,end = end_date,
                     args = args_long_FESX, steps = T) |>
@@ -117,9 +116,12 @@ FESX_plot <-
   scale_y_continuous(
     breaks = seq(from = -0.25, to = 0.25, by = 0.05),
     labels = scales::label_percent()) +
-  scale_x_date(breaks = seq.Date(from = as.Date("2020-01-01"), to = as.Date("2022-01-01"), by = "2 month"),
+  scale_x_date(breaks = seq.Date(from = as.Date("2020-01-01"),
+                                 to = as.Date("2022-01-01"),
+                                 by = "2 month"),
                labels = scales::date_format(format = "%b-%Y"))+
-  geom_point(aes(y = MPOR_returns_LONG, fill = "lagged n-day Return"), color = FESX_Margin$color,
+  geom_point(aes(y = MPOR_returns_LONG, fill = "lagged n-day Return"),
+             color = FESX_Margin$color,
              size = FESX_Margin$size)+
   theme_minimal() +
   labs(title = "FESX", subtitle = "n = 3",
@@ -142,9 +144,12 @@ FGBX_plot <-
   scale_y_continuous(
     breaks = seq(from = -0.08, to = 0.08, by = 0.02),
     labels = scales::label_percent()) +
-  scale_x_date(breaks = seq.Date(from = as.Date("2020-01-01"), to = as.Date("2022-01-01"), by = "2 month"),
+  scale_x_date(breaks = seq.Date(from = as.Date("2020-01-01"),
+                                 to = as.Date("2022-01-01"),
+                                 by = "2 month"),
                labels = scales::date_format(format = "%b-%Y"))+
-  geom_point(aes(y = MPOR_returns_LONG, fill = "lagged n-day Return"), color = FGBX_Margin$color,
+  geom_point(aes(y = MPOR_returns_LONG, fill = "lagged n-day Return"),
+             color = FGBX_Margin$color,
              size = FGBX_Margin$size)+
   theme_minimal() +
   scale_alpha_manual(values = 1) +
@@ -165,10 +170,12 @@ FGBX_plot <-
   scale_color_jama()
 
 #path two graphs together
-FGBX_plot + FESX_plot + 
+out <- 
+  FGBX_plot + FESX_plot + 
   plot_annotation(
   title = "Margin Requirement MRIM",
   theme = theme(plot.title = element_text(hjust = .5, size = 14, face = "bold",),
                 legend.position = "bottom"))+
   plot_layout(guides = "collect")
 
+ggsave("margins.png", plot = out, device = png, width = 15.9, height = 8.5, unit = "cm")

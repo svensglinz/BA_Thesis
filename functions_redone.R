@@ -299,6 +299,8 @@ procyclicality_measures <- function(margins, start, end){
   start = as.Date(start, format = "%d/%m/%Y")
   end = as.Date(end, format = "%d/%m/%Y")
   
+  #values are wrong not necessarily 20 days in between but rather biggest difference 
+  #within a 20 day window!!!
   margins <- margins |> 
     arrange(DATE) |> 
     filter(between(DATE, start, end))
@@ -307,9 +309,9 @@ procyclicality_measures <- function(margins, start, end){
   max_1d <- max(diff(margins$Margin, lag = 1) / margins$Margin[-length(margins$Margin)], na.rm = T)
   max_5d <- max(diff(margins$Margin, lag = 5) / margins$Margin[-c(length(margins$Margin):(length(margins$Margin)-4))], na.rm = T)
   max_30d <- max(diff(margins$Margin, lag = 20) / margins$Margin[-c(length(margins$Margin):(length(margins$Margin)-19))], na.rm = T) #30days = 20 business days!
-  
-  out <- tibble(type = c("peak_to_through", "max_1d", "max_5d", "max_30d"),
-                value = c(peak_to_through, max_1d, max_5d, max_30d))
+  costs <- mean(margins$Margin, na.rm = T)
+  out <- tibble(type = c("peak_to_through", "max_1d", "max_5d", "max_30d", "costs"),
+                value = c(peak_to_through, max_1d, max_5d, max_30d, costs))
   return(out)
 }
 
@@ -319,48 +321,43 @@ procyclicality_measures <- function(margins, start, end){
 #returns some goodness Margins defined in the paper by which we measure a margin model 
 #How is this connected to the default fund thing? 
 
-goodness_criteria <- function(margin_df, direction, start, end){
+summary_stats <- function(margin_df, start, end){
   
   start = as.Date(start, format = "%d/%m/%Y")
   end = as.Date(end, format = "%d/%m/%Y")
   
   margin_df <- margin_df |> 
-    filter(between(DATE, start, end))
-  
-  if (direction == "long"){
-    margin_df$Margin <- margin_df$Margin *-1 
-  }
+    filter(between(DATE, start, end)) |> 
+    mutate(MPOR_returns = exp(MPOR_returns)-1)
   
   N_observations <- length(na.omit(margin_df$MPOR_returns))
-  N_breaches <- sum(margin_df$Margin > margin_df$MPOR_returns, na.rm = T) #account for NA= T (check)
-  #below when calculating percentage
+  N_breaches <- sum(margin_df$Margin < margin_df$MPOR_returns*-1, na.rm = T)
+
   perc_breaches <- (N_breaches / N_observations)*100
-  
   realized_conf_level <- 100-perc_breaches
   
-  #gives average shortfall in % not in absolute terms!
-  avg_shortfall <- margin_df |> filter(Margin > MPOR_returns) |> 
-    mutate(shortfall = MPOR_returns - Margin) |> 
+  #gives average shortfall in % not in absolute terms!!! (must check!!!)
+  avg_shortfall <- margin_df |> filter(Margin < MPOR_returns*-1) |> 
+    mutate(shortfall = MPOR_returns*-1 - Margin) |> 
     summarize(avg_shortfall = mean(shortfall)) |>
     pull(avg_shortfall)
   
-  #also calculate maximum historical shortfall ? --> More appropriate for 
-  #default fund calculation???
-  #gives average shortfall in % not in absolute terms!
-  max_shortfall <- margin_df |> filter(Margin > MPOR_returns) |> 
+  max_shortfall <- margin_df |> filter(Margin < MPOR_returns*-1) |> 
     mutate(shortfall = MPOR_returns - Margin) |> 
     summarize(max_shortfall = min(shortfall)) |> 
     pull(max_shortfall)
   
-    #should we divide this by some kind of baseline scenario ? in what 
- #measurement should we report this??? --> rapid and strong changes in day to day requirements 
-  #should add a multiplier to costs!!! --> Since stress is also cost and also additional financing costs!!!!!!
-  costs <- sum(margin_df$Margin, na.rm = T)
+  costs <- mean(margin_df$Margin, na.rm = T)
+  
+  peak_to_through <- max(margin_df$Margin, na.rm = T)/min(margin_df$Margin, na.rm = T)
+  max_1d <- max(diff(margin_df$Margin, lag = 1) / margin_df$Margin[-length(margin_df$Margin)], na.rm = T)
+  max_5d <- max(diff(margin_df$Margin, lag = 5) / margin_df$Margin[-c(length(margin_df$Margin):(length(margin_df$Margin)-4))], na.rm = T)
+  max_30d <- max(diff(margin_df$Margin, lag = 20) / margin_df$Margin[-c(length(margin_df$Margin):(length(margin_df$Margin)-19))], na.rm = T) #30days = 20 business days!
   
   out <- tibble(type = c("N_breaches", "N_observations", "perc_breaches", "conf_level", "avg_shortfall",
-                  "max_shortfall"),
+                  "max_shortfall", "costs", "peak_to_through", "max_1d", "max_5d", "max_30d"),
                 values = c(N_breaches, N_observations, perc_breaches, realized_conf_level,
-                           avg_shortfall, max_shortfall))
+                           avg_shortfall, max_shortfall, costs, peak_to_through, max_1d, max_5d, max_30d))
   
   return(out)
 }
