@@ -49,39 +49,6 @@ read_master <- function(path){
   return(out)
 }
 
-#' Function description
-#' @param returns 
-#' @param n_day
-#' @param lambda
-#' @return  
-#' @examples 
-
-calculate_vola <- function(product, start, end = NA, lambda, n_day){
-  
-  start <- as.Date(start, format = "%d/%m/%Y")
-  end <- as.Date(end, format = "%d/%m/%Y")
-  
-  returns <- 
-    master$returns |> 
-    filter(INST == product) |> 
-    select(-INST)
-  
-  #if cutoff does not exist --> make 1
-  cutoff <- max(which(returns$DATE >= start))+ 2*args$n_day
-  adj_cutoff <- round(cutoff/args$MPOR)*args$MPOR
-  returns <- returns[(1:adj_cutoff),]
-  
-  weights <- (1-lambda)* ((lambda) ^c(0:(n_day-1)))
-  
-  vola <- rollapply(returns["LOG_RET"], n_day,
-                    FUN = function(x) 
-                      sqrt(sum(x^2 *weights)), align = "left")
-  
-  out <- tibble(returns = returns$DATE[1:length(vola)],
-                vola = as.vector(vola))
-  return(out)
-}
-
 #' FUNCTION DESCRIPTION 
 #' @param product name of product (string) for which margin should be calculated. 
 #' Name must be in column INST of the masterfile
@@ -112,11 +79,8 @@ calculate_FHS_margin <- function(product, start, end = NA, args, steps = FALSE){
     filter(INST == product) |> 
     filter(DATE <= end) |> 
     select(-INST) |> 
-    na.omit()
-  
-  if(args$short){
-    returns$LOG_RET <- returns$LOG_RET *-1
-  }
+    na.omit() |> 
+    arrange(desc(DATE))
   
   #cutoff date + values needed for vola calculation
   cutoff <- max(which(returns$DATE >= start))+ 2*args$n_day
@@ -139,6 +103,10 @@ calculate_FHS_margin <- function(product, start, end = NA, args, steps = FALSE){
     #are represented equally again!
     slice(1: (n() -args$MPOR))
   
+  if (args$short){
+    returns <- returns |> 
+      mutate(MPOR_returns = MPOR_returns*-1)
+  }
   #calculate EWMA VOLA for each different bucket!!!
   #nest by bucket and calculate rolling volatilites with a time period of n_day / MPOR
   vol_returns <- returns |> 
@@ -185,7 +153,7 @@ vol_returns <- vol_returns |>
         reval <- as.numeric(x[,"devalued"]) * max(quantile(as.numeric(x[,"vola"]), .5)[[1]],
                                                   as.numeric(x[, "revalue_factor"][1]))
         #output which is upscaled FHS_Margin
-        out <- quantile(reval, ((1-args$quantile)/2), na.rm = T)[[1]] * args$factor
+        out <- quantile(reval, ((1-args$quantile)/2), na.rm = T)[[1]] * args$factor #deleted / 2 behind
         return(out)
       }
       )})) |> 
@@ -232,10 +200,6 @@ calculate_SP_margin <- function(product, start, end = NA, args){
     filter(INST == product) |> 
     select(-INST)
   
-  if (args$short){
-    returns["LOG_RET"] <- returns["LOG_RET"]*-1
-  }
-  
   stress_dates <- 
     master$stress_periods |> 
     filter(LIQ_GROUP == args$liq_group) |> 
@@ -253,10 +217,18 @@ calculate_SP_margin <- function(product, start, end = NA, args){
     mutate(data = map(data, function(x) x |> 
                         mutate(r = as.vector(rollsum(x["LOG_RET"], 3,
                                                      fill = NA, align = "left")),
-                               bucket = rep(1:3, length.out = nrow(x)))
+                               bucket = rep(1:3, length.out = nrow(x))) |> 
+                        mutate(ifelse(args$short, r*-1, r))
     ))
   
+  # if (args$short){
+  #   sp_var_df |> 
+  #     unnest(cols = data) |> 
+  #     mutate(r = r*-1) |> 
+  #     nest(-c(VALID_FROM, VALID_TO))
+  # }
   #calculate VAR per bucket and per validity interval
+  
   sp_var_df <- sp_var_df |> 
     mutate(data = map(data, function(x) x |>
                         group_by(bucket) |> 
@@ -266,7 +238,7 @@ calculate_SP_margin <- function(product, start, end = NA, args){
     )) |> 
     unnest(cols = c("data"))
   
-  test <- returns |> 
+  Margin <- returns |> 
     mutate(INDEX = 1:nrow(returns)) |>
     select(-LOG_RET) |> 
     nest(data = DATE) |> 
@@ -278,7 +250,7 @@ calculate_SP_margin <- function(product, start, end = NA, args){
     unnest(cols = c(data, sp_var)) |> 
     filter(DATE >= start & DATE <= end) |> 
     select(-INDEX)
-  return(test)
+  return(Margin)
 }
 
 #' FUNCTION DESCRIPTION 
@@ -324,16 +296,17 @@ margin_calculator <- function(product, start, end = NA, args, steps = FALSE){
 
 procyclicality_measures <- function(margins, start, end){
   
-  margins <- margins |> 
-    arrange(DATE)
-  
   start = as.Date(start, format = "%d/%m/%Y")
   end = as.Date(end, format = "%d/%m/%Y")
   
-  peak_to_through <- max(margins$test, na.rm = T)/min(margins$test, na.rm = T)
-  max_1d <- max(diff(margins$test, lag = 1) / margins$test[-length(margins$test)], na.rm = T)
-  max_5d <- max(diff(margins$test, lag = 5) / margins$test[-c(length(margins$test):(length(margins$test)-4))], na.rm = T)
-  max_30d <- max(diff(margins$test, lag = 20) / margins$test[-c(length(margins$test):(length(margins$test)-19))], na.rm = T) #30days = 20 business days!
+  margins <- margins |> 
+    arrange(DATE) |> 
+    filter(between(DATE, start, end))
+  
+  peak_to_through <- max(margins$Margin, na.rm = T)/min(margins$Margin, na.rm = T)
+  max_1d <- max(diff(margins$Margin, lag = 1) / margins$Margin[-length(margins$Margin)], na.rm = T)
+  max_5d <- max(diff(margins$Margin, lag = 5) / margins$Margin[-c(length(margins$Margin):(length(margins$Margin)-4))], na.rm = T)
+  max_30d <- max(diff(margins$Margin, lag = 20) / margins$Margin[-c(length(margins$Margin):(length(margins$Margin)-19))], na.rm = T) #30days = 20 business days!
   
   out <- tibble(type = c("peak_to_through", "max_1d", "max_5d", "max_30d"),
                 value = c(peak_to_through, max_1d, max_5d, max_30d))
@@ -343,7 +316,7 @@ procyclicality_measures <- function(margins, start, end){
 #' @param margins
 #' @return 
 #' @examples 
-#returns some goodness tests defined in the paper by which we measure a margin model 
+#returns some goodness Margins defined in the paper by which we measure a margin model 
 #How is this connected to the default fund thing? 
 
 goodness_criteria <- function(margin_df, direction, start, end){
@@ -351,31 +324,55 @@ goodness_criteria <- function(margin_df, direction, start, end){
   start = as.Date(start, format = "%d/%m/%Y")
   end = as.Date(end, format = "%d/%m/%Y")
   
+  margin_df <- margin_df |> 
+    filter(between(DATE, start, end))
+  
   if (direction == "long"){
     margin_df$Margin <- margin_df$Margin *-1 
   }
   
+  N_observations <- length(na.omit(margin_df$MPOR_returns))
   N_breaches <- sum(margin_df$Margin > margin_df$MPOR_returns, na.rm = T) #account for NA= T (check)
   #below when calculating percentage
-  perc_breaches <- (N_breaches / length(na.omit(margin_df$MPOR_returns)))*100
+  perc_breaches <- (N_breaches / N_observations)*100
+  
   realized_conf_level <- 100-perc_breaches
   
   #gives average shortfall in % not in absolute terms!
-  margin_df |> filter(Margin > MPOR_returns) |> 
+  avg_shortfall <- margin_df |> filter(Margin > MPOR_returns) |> 
     mutate(shortfall = MPOR_returns - Margin) |> 
-    summarize(avg_shortfall = mean(shortfall))
+    summarize(avg_shortfall = mean(shortfall)) |>
+    pull(avg_shortfall)
   
   #also calculate maximum historical shortfall ? --> More appropriate for 
   #default fund calculation???
   #gives average shortfall in % not in absolute terms!
-  margin_df |> filter(Margin > MPOR_returns) |> 
+  max_shortfall <- margin_df |> filter(Margin > MPOR_returns) |> 
     mutate(shortfall = MPOR_returns - Margin) |> 
-    summarize(avg_shortfall = min(shortfall))
+    summarize(max_shortfall = min(shortfall)) |> 
+    pull(max_shortfall)
   
-  #should we divide this by some kind of baseline scenario ? in what 
+    #should we divide this by some kind of baseline scenario ? in what 
  #measurement should we report this??? --> rapid and strong changes in day to day requirements 
   #should add a multiplier to costs!!! --> Since stress is also cost and also additional financing costs!!!!!!
-  costs <- sum(margins$test, na.rm = T)
+  costs <- sum(margin_df$Margin, na.rm = T)
+  
+  out <- tibble(type = c("N_breaches", "N_observations", "perc_breaches", "conf_level", "avg_shortfall",
+                  "max_shortfall"),
+                values = c(N_breaches, N_observations, perc_breaches, realized_conf_level,
+                           avg_shortfall, max_shortfall))
+  
+  return(out)
 }
 
+
+#should the confidence level only be seen one sided ? IMO yes!!!
+
+
+
+#Procyclicality Measure can be built into the Margin_Calculator Function where this can be specified!!!
+
+#as a baseline scenario, we will use the unfloored FHS_Margin!!!
+
+#Floor has already been done! --> No need to elaborate on this. 
 

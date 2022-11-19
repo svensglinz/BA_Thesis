@@ -7,29 +7,65 @@ library(scales)
 library(ggthemes)
 library(ggsci)
 library(ggExtra)
+library(ggforce)
 
 source("functions_redone.R")
+
+master <- read_master("Data/data_input.xlsx")
 ################################################################################
 #EWMA VOLATILITY CALCULATION                                                   #
 #                                                                              #
 #                                                                              #
 ################################################################################
 
-vol_FESX <- calculate_vola(product = "FESX", start = start, end = end, lambda = lambda, n_day = n_day) |> 
+vol_FESX <-
+  calculate_vola(
+    product = "FESX",
+    start = start,
+    end = end,
+    lambda = lambda,
+    n_day = n_day
+  ) |>
   rename(date = returns, FESX = vola)
-vol_FSMI <- calculate_vola(product = "FSMI", start = start, end = end, lambda = lambda, n_day = n_day)|> 
+
+vol_FSMI <-
+  calculate_vola(
+    product = "FSMI",
+    start = start,
+    end = end,
+    lambda = lambda,
+    n_day = n_day
+  ) |>
   rename(date = returns, FSMI = vola)
-vol_FGBX <- calculate_vola(product = "FGBX", start = start, end = end, lambda = lambda, n_day = n_day)|> 
+
+vol_FGBX <-
+  calculate_vola(
+    product = "FGBX",
+    start = start,
+    end = end,
+    lambda = lambda,
+    n_day = n_day
+  ) |>
   rename(date = returns, FGBX = vola)
-vol_FGBL <- calculate_vola(product = "FGBL", start = start, end = end, lambda = lambda, n_day = n_day)|> 
+
+vol_FGBL <-
+  calculate_vola(
+    product = "FGBL",
+    start = start,
+    end = end,
+    lambda = lambda,
+    n_day = n_day
+  ) |>
   rename(date = returns, FGBL = vola)
 
-combined <- vol_FESX |> 
+combined <- vol_FESX |>
   full_join(vol_FSMI) |>
   full_join(vol_FGBX) |>
-  full_join(vol_FGBL) |> 
-  na.omit() |> 
-  pivot_longer(cols = 2:5, names_to = "product", values_to = "vola")
+  full_join(vol_FGBL) |>
+  na.omit() |>
+  pivot_longer(cols = 2:5,
+               names_to = "product",
+               values_to = "vola")
 
 #PLOT the volatility graph
 #this plot should show that if we put it in larger context, this was not an extreme outlier 
@@ -38,28 +74,21 @@ combined <- vol_FESX |>
 
 #could also calculate margin backwards to these days and show our effects --> Large backesting!
 
-vol_plot <- 
-  combined |> 
-  ggplot(aes(x = date, y = vola, group= product, color = product))+
+d_returns_FESX <- 
+  master$returns |> filter(INST == "FESX") |> 
+  filter(between(DATE, as.Date("2007-01-01"), as.Date("2020-12-31"))) |> 
+  arrange(desc(DATE)) |> 
+  mutate(ret_3d = rollapply(LOG_RET, 3, fill = NA, align = "left", FUN = sum),
+         ret_3d = exp(ret_3d)-1) |> 
+  ggplot(aes(x = DATE, y = ret_3d))+
   geom_line()+
-  theme_minimal()+
-  labs(title = "Daily Exponentially weighted Volatility of Returns",
-       x = NULL,
+  theme_bw()+
+  labs(title = "Rolling 3-Day Returns FESX",
        y = NULL, 
-       color = NULL)+
-  theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        panel.grid = element_line(color = "grey", linetype = 2, size = 0.5),
-        panel.background = element_rect(color = "black"),
-        legend.position = "right",
-        plot.title = element_text(size = 12, face = "bold"))+
-  scale_y_continuous(breaks = seq(from = 0.01, to = 0.06, by = 0.01), labels = scales::label_percent())+
-  expand_limits(y = 0.06)+
-  scale_color_jama()
+       x = NULL)+
+  theme(plot.title = element_text(size = 12, face = "bold"))
 
-ggsave("graphs/volplot.png", plot = vol_plot, device = "png", dpi = 300, height = 6.03, width = 15.9, units = "cm")
-
+ggsave("graphs/d_returns_FESX.png", plot = d_returns_FESX, device = "png", dpi = 300, height = 6.03, width = 15.9, units = "cm")
 
 ################################################################################
 #EWMA VOLATILITY CALCULATION                                                   #
@@ -67,6 +96,67 @@ ggsave("graphs/volplot.png", plot = vol_plot, device = "png", dpi = 300, height 
 #                                                                              #
 ################################################################################
 
+vol_plot_inst <-
+  combined |>
+  filter(between(date, as.Date("2020-01-01"), as.Date("2020-12-31"))) |>
+  ggplot(aes(
+    x = date,
+    y = vola,
+    group = product,
+    color = product
+  )) +
+  geom_line() +
+  theme_minimal() +
+  labs(
+    title = "Daily Exponentially weighted Volatility of Returns",
+    x = NULL,
+    y = NULL,
+    color = NULL
+  ) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    panel.grid = element_line(
+      color = "grey",
+      linetype = 2,
+      size = 0.5
+    ),
+    panel.background = element_rect(color = "black"),
+    axis.text.x = element_text(angle = 45),
+    legend.position = "right",
+    plot.title = element_text(size = 12, face = "bold")
+  ) +
+  scale_y_continuous(
+    breaks = seq(from = 0.01, to = 0.06, by = 0.01),
+    labels = scales::label_percent()
+  ) +
+  scale_x_date(
+    breaks = seq.Date(
+      from = as.Date("2019-01-01"),
+      to = as.Date("2020-12-31"),
+      by = "1 month"
+    ),
+    labels = scales::date_format(format = "%h")
+  ) +
+  expand_limits(y = 0.06) +
+  scale_color_jama()
+
+ggsave(
+  "graphs/volplot_inst.png",
+  plot = vol_plot_inst,
+  device = "png",
+  dpi = 300,
+  height = 6.03,
+  width = 15.9,
+  units = "cm"
+)
+
+################################################################################
+#EWMA VOLATILITY CALCULATION                                                   #
+#                                                                              #
+#                                                                              #
+################################################################################
 
 FESX_Margin_long <- margin_calculator(product = "FESX", start = start, end = end, args = args_long)
 FESX_Margin_short <- margin_calculator(product = "FESX", start = start, end = end, args = args_short)
@@ -134,7 +224,7 @@ securities <- read_csv("Data/Eurex_Data/eligible_securities.csv",
 securities_plot <- securities |> group_by(SECURITY_TYPE, FACT_DATE) |> 
   filter(SECURITY_TYPE %in% c("BANK BONDS", "CORPORATE BONDS",
                               "SOVEREIGN GOVERNMENT BONDS", "STATE AGENCIES",
-                              "STATE/MUNICIPAL BONDS", "STOCKS")) |> 
+                              "STATE/MUNICIPAL BONDS", "STOCKS"))|> 
   summarize(avg_haircut = mean(SECURITY_EVALUATION_FACTOR, na.rm = T)) |> 
   ggplot(aes(x = FACT_DATE, y = avg_haircut))+
   geom_vline(xintercept = as.Date("2020-03-01"), color = "red", size = 2, alpha = .2)+
@@ -185,10 +275,13 @@ collateral <- collateral |>
   left_join(grouped_daily, by = c("FACT_DATE")) |> 
   mutate(perc = MARKET_VALUE_EUR / total)
 
+collateral$SECURITY_TYPE <- fct_expand(collateral$SECURITY_TYPE, "CASH")
+collateral$SECURITY_TYPE[collateral$COLLATERAL_TYPE == "C"] <- "CASH"
+
 col_plot <- 
   collateral |> 
   filter(SECURITY_TYPE %in% c("BANK BONDS", "CORPORATE BONDS", "SOVEREIGN GOVERNMENT BONDS",
-                              "STATE AGENCIES", "STOCKS", "STATE/MUNICIPAL BONDS", "null")) |> 
+                              "STATE AGENCIES", "STOCKS", "STATE/MUNICIPAL BONDS")  | COLLATERAL_TYPE == "C") |> 
   ggplot(aes(x = FACT_DATE, y = perc))+
   geom_line()+
   geom_vline(xintercept = as.Date("2020-03-01"), color = "red", size = 2, alpha = .2)+
@@ -279,10 +372,10 @@ IM_graph <- ggMarginal(IM_graph, type = "density", margins = "y")
   
 ggsave("graphs/IM_graph.png", plot = IM_graph, device = "png", dpi = 300, height = 6.23, width = 12.9, units = "cm")
 
-df <- tibble(NULL)
+empty <- tibble(NULL)
 
 empty_CCP <- 
-  df |> 
+  empty |> 
   ggplot(aes(NULL))+
   theme(panel.border = element_rect(color = "black"),
         axis.title = element_blank(),
@@ -292,7 +385,7 @@ empty_CCP <-
 ggsave("graphs/empty_CCP.png", plot = empty_CCP, device = "png", dpi = 300, height = 6.63, width = 7.34, units = "cm")
 
 empty_bilateral <- 
-  df |> 
+  empty |> 
   ggplot(aes(NULL))+
   theme(panel.border = element_rect(color = "black"),
         axis.title = element_blank(),
@@ -300,6 +393,26 @@ empty_bilateral <-
   labs(title = "Bilateral Clearing")
 
 ggsave("graphs/empty_bilateral.png", plot = empty_bilateral, device = "png", dpi = 300, height = 6.63, width = 7.34, units = "cm")
+
+empty_Closeout <- 
+  empty |> 
+  ggplot(aes(NULL))+
+  theme(panel.border = element_rect(color = "black"),
+        axis.title = element_blank(),
+        plot.title = element_text(size = 12, face = "bold"))+
+labs(title = "Position Close Out")
+
+ggsave("graphs/empty_Closeout.png", plot = empty_Closeout, device = "png", dpi = 300, height = 5.97, width = 8.41, units = "cm")
+
+empty_Porting <- 
+  empty |> 
+  ggplot(aes(NULL))+
+  theme(panel.border = element_rect(color = "black"),
+        axis.title = element_blank(),
+        plot.title = element_text(size = 12, face = "bold"))+
+labs(title = "Client Position Porting")
+
+ggsave("graphs/empty_Porting.png", plot = empty_Porting, device = "png", dpi = 300, height = 5.97, width = 7.52, units = "cm")
 
 ################################################################################
 #EWMA VOLATILITY CALCULATION                                                   #
@@ -311,7 +424,10 @@ ggsave("graphs/empty_bilateral.png", plot = empty_bilateral, device = "png", dpi
 #plot of baseline scenario for FESX and FGBX (or should we take FGBL as well ??? Check out website 
 #to see whether they are still there!!!)
 
-args_long <- list(MPOR = 3, factor = 1.37, quantile = 0.974, lambda = 0.9593, 
+#lowre lambdas are not necessarily better to capture outliers since margin 
+#can recover too fast and then one large outlier which is only included in the volatility the 
+#next day can have a very large impact and lead to quick breaches!5
+args_long <- list(MPOR = 3, factor = 1.37, quantile = 0.974, lambda = 0.5, 
              n_day = 750, floor = FALSE, absolute = FALSE, liq_group  = "PEQ01",
              short = FALSE)
 
@@ -319,35 +435,59 @@ args_short <- list(MPOR = 3, factor = 1.37, quantile = 0.974, lambda = 0.9593,
                    n_day = 750, floor = FALSE, absolute = FALSE, liq_group  = "PEQ01",
                    short = TRUE)
 
-FESX_long <- margin_calculator(product = "FESX", start = "01/01/2000", end = "01/01/2021", args = args_long)
-FESX_short <- margin_calculator(product = "FESX", start = "01/01/2000", end = "01/01/2021", args = args_short)
-FESX_long$test <- -FESX_long$test
-FESX_long$type <- "long"
-FESX_short$type <- "short"
+FESX_long <-
+  margin_calculator(
+    product = "FESX",
+    start = "01/01/2000",
+    end = "01/01/2021",
+    args = args_long,
+    steps = T
+  )
 
-FESX_margin <- bind_rows(FESX_long, FESX_short)
+FESX_short <-
+  margin_calculator(
+    product = "FESX",
+    start = "01/01/2000",
+    end = "01/01/2021",
+    args = args_short,
+    steps = T
+  )
 
-FESX <- master$returns |> filter(INST == "FESX") |> select(DATE, LOG_RET) |> 
-  arrange(DATE)
-FESX$MPOR_RET <- rollapply(FESX$LOG_RET, 3, FUN = function(x) exp(sum(x))-1,
-                        by.column = F, align = "left", fill = NA)
 
-FESX_plot <- FESX_margin |> left_join(FESX, by = c("DATE"))
-
-FESX_long <- FESX_plot |> filter(type == "long") |> 
-  mutate(breach = ifelse(MPOR_RET < test, "red", "black"))
-
-FESX_short <- FESX_plot |> filter(type == "short") |> 
-  mutate(breach = ifelse(MPOR_RET > test, "red", "black"))
-
-FESX_plot <-  bind_rows(FESX_short, FESX_long)
-FESX_plot$size <- ifelse(FESX_plot$breach == "red", 2, 0.75)
-FESX_plot <- FESX_plot |> arrange(breach)
-
-FESX_out <- FESX_plot |> 
+FESX_long |> 
   ggplot(aes(x = DATE))+
-  geom_line(aes(y = test, group = type, color = type))+
-  geom_point(aes(y = MPOR_RET), color =FESX_plot$breach, size = FESX_plot$size)+
+  geom_line(aes(y = Margin))+
+  geom_point(aes(y = MPOR_returns), color = FESX_long$color)
+
+FESX_short |> 
+  ggplot(aes(x = DATE))+
+  geom_line(aes(y = Margin))+
+  geom_point(aes(y = MPOR_returns), color = FESX_short$color)
+
+
+FESX_long <- FESX_long |> mutate(
+  type = "long",
+  breach = ifelse(MPOR_returns < -Margin, T, F),
+  Margin = - Margin, #plot margin negatively for Long Position
+  color = ifelse(breach, "red", "black"),
+  size = ifelse(breach, 2, 0.75)
+)
+
+FESX_short <- FESX_short|> mutate(
+  type = "short",
+  breach = ifelse(MPOR_returns < - Margin, T, F),
+  MPOR_returns = - MPOR_returns, #plot long margin only
+  color = ifelse(breach, "red", "black"),
+  size = ifelse(breach, 2, 0.75)
+)
+
+FESX_margin <- bind_rows(FESX_long, FESX_short) |> 
+  arrange(breach)
+
+FESX_out <- FESX_margin |> 
+  ggplot(aes(x = DATE))+
+  geom_line(aes(y = Margin, group = type, color = type))+
+  geom_point(aes(y = MPOR_returns), color = FESX_margin$color, size = FESX_margin$size)+
   theme(panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
         panel.background = element_rect(color = "black", fill = "white"),
@@ -358,13 +498,13 @@ FESX_out <- FESX_plot |>
   scale_x_date(breaks = seq.Date(from = as.Date("2006-01-01"),
                                  to = as.Date("2023-01-01"), by = "2 years"),
                labels = date_format("%Y"))+
-  labs(title = "Margin Requirment FESX",
+  labs(title = "Margin Requirement FESX",
        y = "Margin in %",
        x = "Date",
        color = "")+
   scale_color_jama()
   
-ggsave("graphs/FESX_plot.png", plot = FESX_out, device = "png", dpi = 300, height = 8.54, width = 16.1, units = "cm")
+ggsave("graphs/FESX_plot.png", plot = FESX_out, device = "png", dpi = 300)
 
 
 #####do plot for FGBL 
@@ -480,6 +620,11 @@ FSMI_out <- FSMI_plot |>
 
 ggsave("graphs/FSMI_plot.png", plot = FSMI_out, device = "png", dpi = 300, height = 8.54, width = 16.1, units = "cm")
 
+################################################################################
+#EWMA VOLATILITY CALCULATION                                                   #
+#                                                                              #
+#                                                                              #
+################################################################################
 
 ##for FGBX 
 args_long <- list(MPOR = 3, factor = 1.37, quantile = 0.974, lambda = 0.9593, 
@@ -532,6 +677,13 @@ FESX_out <- FESX_plot |>
        y = "Margin in %",
        x = "Date",
        color = "")+
-  scale_color_jama()
+  scale_color_jama()+
+  facet_zoom(xlim = c(as.Date("2020-01-01"), as.Date("2021-01-01")))
 
 ggsave("graphs/FESX_plot.png", plot = FESX_out, device = "png", dpi = 300, height = 8.54, width = 16.1, units = "cm")
+
+
+###############################################################################
+#plot margin requirements for FESX
+
+##############################################################################
