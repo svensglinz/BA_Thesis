@@ -4,100 +4,95 @@ library(lubridate)
 library(zoo)
 library(tidyverse)
 library(scales)
-library(ggthemes)
 library(ggsci)
 library(ggExtra)
-library(ggforce)
-library(patchwork)
-library(latex2exp)
 
-#' Function description
-#' @param returns 
-#' @param n_day
-#' @param lambda
-#' @return  
-#' @examples 
-
-calculate_vola <- function(product, start, end, lambda, n_day, MPOR){
-  
-  start <- as.Date(start, format = "%d/%m/%Y")
-  end <- as.Date(end, format = "%d/%m/%Y")
-  
-  returns <- 
-    master$returns |> 
-    filter(INST == product & DATE <= end) |> 
-    select(-INST)
-  
-  #if cutoff does not exist --> make 1
-  cutoff <- max(which(returns$DATE >= start))+ n_day
-  adj_cutoff <- round(cutoff/MPOR)*MPOR
-  returns <- returns[(1:adj_cutoff),]
-  
-  #depending on MPOR returns must be summed up here!
-  returns |> 
-    gather()
-  weights <- (1-lambda)* ((lambda) ^c(0:(n_day-1)))
-  
-  vola <- rollapply(returns["LOG_RET"], n_day,
-                    FUN = function(x) 
-                      sqrt(sum(x^2 *weights)), align = "left")
-  
-  out <- tibble(returns = returns$DATE[1:length(vola)],
-                vola = as.vector(vola))
-  return(out)
-}
-
-#define basic parameters 
+#import written functions and store master sheet in memory
 master <- read_master("Data/data_input.xlsx")
 source("functions_redone.R")
 
-start_date = "01/01/2020"
-end_date = "31/12/2020"
-lambda = .95
-n_day = 750
-MPOR = 1
+#function which calculates the 1d EWMA Volatility
+calculate_vola <- function(product, start, end, lambda, n_day, MPOR){
 
+  #filter by product & Date
+  returns <-
+    master$returns |>
+    filter(INST == product & DATE <= end) |>
+    select(-INST)
+
+  #select necessary amount of rows to calculate vola 
+  #until "end" Date
+  cutoff <- max(which(returns$DATE >= start)) + n_day
+  adj_cutoff <- round(cutoff / MPOR) * MPOR
+  returns <- returns[(1:adj_cutoff), ]
+
+  #weights for calculation of Volatility -> INCLUDE ADJUSTMENT FACTOR AS IN PAPER
+  weights <- (1 - lambda) * ((lambda) ^c(0:(n_day - 1)))
+
+  vola <- rollapply(returns["LOG_RET"], n_day,
+                    FUN = function(x)
+                      sqrt(sum(x^2 * weights)), align = "left")
+                      
+
+  out <- tibble(DATE = returns$DATE[seq_along(vola)],
+                VOLA = as.vector(vola))
+  return(out)
+}
+
+#define basic parameters
+start_date <- as.Date("2020-01-01")
+end_date <- as.Date("2020-12-31")
+lambda <- .95
+n_day <- 750
+MPOR <- 1
+
+#calculate 1d EWMA for FESX FSMI, FBGX & FGBL
 vol_FESX <-
   calculate_vola(product = "FESX", start = start_date, end = end_date,
     lambda = lambda, n_day = n_day, MPOR = MPOR) |>
-  rename(date = returns, FESX = vola)
+    rename(VOLA_FESX = VOLA)
 
 vol_FSMI <-
-  calculate_vola(product = "FSMI",start = start_date, end = end_date,
-    lambda = lambda,n_day = n_day, MPOR = MPOR) |>
-  rename(date = returns, FSMI = vola)
+  calculate_vola(product = "FSMI", start = start_date, end = end_date,
+    lambda = lambda, n_day = n_day, MPOR = MPOR) |>
+    rename(VOLA_FSMI = VOLA)
 
 vol_FGBX <-
-  calculate_vola(product = "FGBX",start = start_date, end = end_date,
-    lambda = lambda,n_day = n_day, MPOR = MPOR) |>
-  rename(date = returns, FGBX = vola)
+  calculate_vola(product = "FGBX", start = start_date, end = end_date,
+    lambda = lambda, n_day = n_day, MPOR = MPOR) |>
+    rename(VOLA_FGBX = VOLA)
+
 
 vol_FGBL <-
-  calculate_vola(product = "FGBL",start = start_date, end = end_date,
-                 lambda = lambda,n_day = n_day, MPOR = MPOR) |>
-  rename(date = returns, FGBL = vola)
+  calculate_vola(product = "FGBL", start = start_date, end = end_date,
+                 lambda = lambda, n_day = n_day, MPOR = MPOR) |>
+                 rename(VOLA_FGBL = VOLA)
 
+#combine Volatilities for Instruments
 combined <- vol_FESX |>
-  full_join(vol_FSMI) |>
-  full_join(vol_FGBX) |>
-  full_join(vol_FGBL) |>
+  full_join(vol_FSMI, by = c("DATE")) |>
+  full_join(vol_FGBX, by = c("DATE")) |>
+  full_join(vol_FGBL, by = c("DATE")) |>
   na.omit() |>
   pivot_longer(cols = 2:5,
-               names_to = "product",
-               values_to = "vola")
+               names_to = "SECURITY",
+               values_to = "VOLA")
 
-combined |> 
-  ggplot(aes(x = date, y = vola, color = product))+
-  geom_line()+
+#plot graph
+combined |>
+  ggplot(aes(x = DATE, y = VOLA, color = SECURITY)) +
+  geom_line() +
   labs(title = "1d EWMA weighted Volatility Returns",
-       subtitle = bquote(paste(lambda," = ", .(lambda), ", Burn-in = ", .(n_day))),
+       subtitle = bquote(paste(lambda," = ", .(lambda),", Burn-in = ", .(n_day))),
        y = NULL,
        x = NULL,
        color = NULL)+
   scale_y_continuous(breaks = seq(from = 0.01, to = 0.06, by = 0.01),
-                     labels = scales::label_percent())+
-  scale_x_date(breaks = seq.Date(from = as.Date("2020-01-01"), to = as.Date("2020-12-31"), by = "month"),
-               labels = scales::label_date(format = "%b"))+
+                     labels = scales::label_percent()) +
+  scale_x_date(breaks = seq.Date(from = as.Date("2020-01-01"),
+                                 to = as.Date("2020-12-31"),
+                                 by = "month"),
+               labels = scales::label_date(format = "%b")) +
   theme(
     panel.grid.major.x = element_blank(),
     panel.grid.minor.x = element_blank(),
@@ -112,5 +107,5 @@ combined |>
     legend.position = "right",
     plot.title = element_text(size = 12, face = "bold"),
     legend.key = element_rect(fill = "white")
-  )+
+  ) +
   scale_color_jama()

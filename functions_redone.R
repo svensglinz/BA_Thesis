@@ -1,4 +1,3 @@
-
 #' EWMA_Vol calculates the exponentially weighted volatility of a return 
 #' vector with a burn-in period of n_day and a decay factor lambda
 #' @param returns numerical vector of a financial return series
@@ -25,13 +24,13 @@ EWMA_vol <- function(returns, n_day, lambda){
   return(out)
 }
 
-#' function which imports the master excel-sheet where all 
+#' function which imports the master excel-sheet where all
 #' essential information is stored and properly formats it for further use
 #' in the below functions
 #' @param path local path where excel sheet with returns is stored
-#' @return list which contains as sub-lists each individual sheet 
-#' of the excel file 
-#' @examples 
+#' @return list which contains as sub-lists each individual sheet
+#' of the excel file
+#' @examples
 #' path <- C:/Users/sveng/OneDrive/Dokumente/Schule/Studium/HSG/Thesis/BA_Thesis/Data
 #' master_file <- read_master(path)
 
@@ -39,17 +38,17 @@ read_master <- function(path){
   stress_periods <- read_excel(path, sheet = "stress_periods")
   stress_periods[1:3] <- lapply(stress_periods[1:3],
                                 function(x) as.Date(x, format = "%d/%m/%Y"))
-  
+
   returns <- read_excel(path, sheet = "returns")
   returns[1] <- as.Date(returns[[1]])
-  
-  out <- list(stress_periods = stress_periods, 
+
+  out <- list(stress_periods = stress_periods,
               returns = returns)
-  
+
   return(out)
 }
 
-#' FUNCTION DESCRIPTION 
+#' FUNCTION DESCRIPTION
 #' @param product name of product (string) for which margin should be calculated. 
 #' Name must be in column INST of the masterfile
 #' @param start string in format "dd/mm/yyyy". Start period for which margin should 
@@ -74,35 +73,35 @@ calculate_FHS_margin <- function(product, start, end = NA, args, steps = FALSE){
   end <- as.Date(end, format = "%d/%m/%Y")
   
   #get returns of product from masterfile
-  returns <- 
-    master$returns |> 
-    filter(INST == product) |> 
-    filter(DATE <= end) |> 
-    select(-INST) |> 
-    na.omit() |> 
+  returns <-
+    master$returns |>
+    filter(INST == product) |>
+    filter(DATE <= end) |>
+    select(-INST) |>
+    na.omit() |>
     arrange(desc(DATE))
-  
+
   #cutoff date + values needed for vola calculation
-  cutoff <- max(which(returns$DATE >= start))+ 2*args$n_day
-  
+  cutoff <- max(which(returns$DATE >= start)) + 2 * args$n_day
+
   #adjusted cutoff that rows are divisible by MPOR
-  adj_cutoff <- round(cutoff/args$MPOR)*args$MPOR
-  
+  adj_cutoff <- round(cutoff / args$MPOR) * args$MPOR
+
   #shorten return vector for faster calculation!
-  returns <- returns[(1:adj_cutoff),]
-  
+  returns <- returns[(1:adj_cutoff), ]
+
   #calculate MPOR day rolling returns, go from log returns to real returns
   #and add buckets to the days
   returns <- returns |> 
-    mutate(MPOR_returns = rollsum(returns$LOG_RET, args$MPOR, fill = NA, align = "left")) |> 
+    mutate(MPOR_returns = rollsum(returns$LOG_RET, args$MPOR,
+                                  fill = NA, align = "left")) |>
     mutate(MPOR_returns = exp(MPOR_returns)-1,
-           buckets = rep(1:args$MPOR, length.out = nrow(returns))) |> 
-    
+           buckets = rep(1:args$MPOR, length.out = nrow(returns))) |>
+    slice(1: (n() -args$MPOR))
+
     #delete last observations which contain NA bc. the rollsum of returns cannot finish 
     #the last two observations (since it needs 3) --> Delete 3 such that all buckets 
     #are represented equally again!
-    slice(1: (n() -args$MPOR))
-  
   if (args$short){
     returns <- returns |> 
       mutate(MPOR_returns = MPOR_returns*-1)
@@ -144,8 +143,8 @@ vol_returns <- vol_returns |>
   arrange(buckets, desc(DATE)) |>
   mutate(revalue_factor = revalue_factor)  
   
-  d <- vol_returns |> 
-    nest(data = -buckets) |> 
+  d <- vol_returns |>
+    nest(data = -buckets) |>
     mutate(FHS_Margin = map(data, function(x){
       rollapply(x, width = args$n_day/args$MPOR, align = "left", fill = NA,
                 by.column = F, FUN = function(x){
@@ -165,19 +164,17 @@ vol_returns <- vol_returns |>
       mutate(FHS_Margin = abs(rollapply(d$FHS_Margin, width = args$MPOR,
                               fill = NA, align = "left", FUN = mean))) |> 
       na.omit()
-  
+
   #return output
     if (steps) {
       return(d)
     } else {
       return(d |> select(DATE, FHS_Margin))
     }
-    
 }
 
-
 #' FUNCTION DESCRIPTION 
-#' @param product name of product (string) for which margin should be calculated. 
+#' @param product name of product (string) for which margin should be calculated.
 #' Name must be in column INST of the masterfile
 #' @param start string in format "dd/mm/yyyy". Start period for which margin should 
 #' be calculated
@@ -206,12 +203,11 @@ calculate_SP_margin <- function(product, start, end = NA, args){
     select(-LIQ_GROUP) |> 
     left_join(returns, by = c("DATE")) |> 
     na.omit()
-  
-  
+
   #nest data such that we can work on individual tibbles 
   sp_var_df <- stress_dates |>
     nest(data = c(CONF_LEVEL, DATE, LOG_RET)) 
-  
+
   #add bucket columns and rolling 3 day returns 
   sp_var_df <- sp_var_df |> 
     mutate(data = map(data, function(x) x |> 
@@ -229,15 +225,15 @@ calculate_SP_margin <- function(product, start, end = NA, args){
   # }
   #calculate VAR per bucket and per validity interval
   
-  sp_var_df <- sp_var_df |> 
+  sp_var_df <- sp_var_df |>
     mutate(data = map(data, function(x) x |>
                         group_by(bucket) |> 
                         summarize(var = quantile(r,1-x[["CONF_LEVEL"]][1]/ 100, na.rm = T)) |> 
                         ungroup() |> 
                         summarize(var = abs(mean(var)))
-    )) |> 
+    )) |>
     unnest(cols = c("data"))
-  
+
   Margin <- returns |> 
     mutate(INDEX = 1:nrow(returns)) |>
     select(-LOG_RET) |> 
@@ -246,14 +242,14 @@ calculate_SP_margin <- function(product, start, end = NA, args){
                         function(x) {
                           vec <- x[[1]][[1]] >= sp_var_df$VALID_FROM & x[[1]][[1]] <sp_var_df$VALID_TO
                           return(sp_var_df$var[vec])
-                        })) |> 
-    unnest(cols = c(data, sp_var)) |> 
-    filter(DATE >= start & DATE <= end) |> 
+                        })) |>
+    unnest(cols = c(data, sp_var)) |>
+    filter(DATE >= start & DATE <= end) |>
     select(-INDEX)
   return(Margin)
 }
 
-#' FUNCTION DESCRIPTION 
+#' FUNCTION DESCRIPTION
 #' @param product name of product (string) for which margin should be calculated. 
 #' Name must be in column INST of the masterfile
 #' @param start string in format "dd/mm/yyyy". Start period for which margin should 
@@ -289,50 +285,24 @@ margin_calculator <- function(product, start, end = NA, args, steps = FALSE){
    return(combined |> select(DATE, Margin))
 }
 
-#' Function Description
 #' @param margins
-#' @return 
-#' @examples 
-
-procyclicality_measures <- function(margins, start, end){
-  
-  start = as.Date(start, format = "%d/%m/%Y")
-  end = as.Date(end, format = "%d/%m/%Y")
-  
-  #values are wrong not necessarily 20 days in between but rather biggest difference 
-  #within a 20 day window!!!
-  margins <- margins |> 
-    arrange(DATE) |> 
-    filter(between(DATE, start, end))
-  
-  peak_to_through <- max(margins$Margin, na.rm = T)/min(margins$Margin, na.rm = T)
-  max_1d <- max(diff(margins$Margin, lag = 1) / margins$Margin[-length(margins$Margin)], na.rm = T)
-  max_5d <- max(diff(margins$Margin, lag = 5) / margins$Margin[-c(length(margins$Margin):(length(margins$Margin)-4))], na.rm = T)
-  max_30d <- max(diff(margins$Margin, lag = 20) / margins$Margin[-c(length(margins$Margin):(length(margins$Margin)-19))], na.rm = T) #30days = 20 business days!
-  costs <- mean(margins$Margin, na.rm = T)
-  out <- tibble(type = c("peak_to_through", "max_1d", "max_5d", "max_30d", "costs"),
-                value = c(peak_to_through, max_1d, max_5d, max_30d, costs))
-  return(out)
-}
-
-#' @param margins
-#' @return 
-#' @examples 
+#' @return
+#' @examples
 #returns some goodness Margins defined in the paper by which we measure a margin model 
 #How is this connected to the default fund thing? 
 
 goodness_criteria <- function(margin_df, direction, start, end){
-  
+
   start = as.Date(start, format = "%d/%m/%Y")
   end = as.Date(end, format = "%d/%m/%Y")
-  
+
   margin_df <- margin_df |> 
     filter(between(DATE, start, end))
-  
+
   if (direction == "long"){
     margin_df$Margin <- margin_df$Margin *-1 
   }
-  
+
   N_observations <- length(na.omit(margin_df$MPOR_returns))
   N_breaches <- sum(margin_df$Margin > margin_df$MPOR_returns, na.rm = T) #account for NA= T (check)
   #below when calculating percentage
@@ -353,12 +323,9 @@ goodness_criteria <- function(margin_df, direction, start, end){
     mutate(shortfall = MPOR_returns - Margin) |> 
     summarize(max_shortfall = min(shortfall)) |> 
     pull(max_shortfall)
-  
-    #should we divide this by some kind of baseline scenario ? in what 
- #measurement should we report this??? --> rapid and strong changes in day to day requirements 
-  #should add a multiplier to costs!!! --> Since stress is also cost and also additional financing costs!!!!!!
+
   costs <- mean(margin_df$Margin, na.rm = T)
-  
+
   out <- tibble(type = c("N_breaches", "N_observations", "perc_breaches", "conf_level", "avg_shortfall",
                   "max_shortfall"),
                 values = c(N_breaches, N_observations, perc_breaches, realized_conf_level,
