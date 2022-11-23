@@ -13,19 +13,25 @@ library(patchwork)
 #define initial variables
 source("functions_redone.R")
 master <- read_master("Data/data_input.xlsx")
-start_date <- as.Date("01.01.2005", format = "%d.%m.%Y")
-end_date <- as.Date("31.12.2021", format = "%d.%m.%Y")
+start_date <- as.Date("2020-01-01")
+end_date <- as.Date("2020-12-31")
 
 #define model parameters
-args_long_FESX <-
-  list(MPOR = 3, factor = 1.37, quantile = 0.974,  quantile = 0.974,
+args_long <-
+  list(MPOR = 3, factor = 1.37, quantile = 0.974, quantile = 0.974,
        lambda = 0.9593, n_day = 750, floor = FALSE,
-       absolute = FALSE, liq_group  = "PEQ01",
-       short = FALSE)
+       absolute = FALSE, liq_group  = "PEQ01", short = FALSE)
 
+args_short <-
+  list(MPOR = 3, factor = 1.37, quantile = 0.974, quantile = 0.974,
+       lambda = 0.9593, n_day = 750, floor = FALSE,
+       absolute = FALSE, liq_group  = "PEQ01", short = TRUE)
+
+stress_short <- margin_calculator(product = "FESX", start = start_date, 
+                )
 stress_long <- margin_calculator(product = "FESX", start = start_date, 
                             end = end_date, args = args_long_FESX,
-                            steps = F) |> 
+                            steps = F) |>
   mutate(type = "STRESS")
 
 baseline_long <- calculate_FHS_margin(product = "FESX", start = start_date, 
@@ -37,13 +43,13 @@ baseline_long <- calculate_FHS_margin(product = "FESX", start = start_date,
 joined <- stress_long |>
   bind_rows(baseline_long)
 
-joined |> 
+joined |>
   ggplot(aes(x = DATE, y = Margin, color = type))+
-  geom_line()+
+  geom_line() + 
   labs(title = "",
        color = NULL,
        x = NULL,
-       y = NULL)+
+       y = NULL) + 
   theme(
     panel.grid = element_blank(),
     panel.grid.minor.x = element_blank(),
@@ -55,5 +61,3 @@ joined |>
     plot.title = element_text(size = 10),
     legend.key = element_rect(fill = "white")) +
   scale_color_jama()
-
-
