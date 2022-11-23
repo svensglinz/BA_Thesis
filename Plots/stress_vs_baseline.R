@@ -1,55 +1,67 @@
-#load relevant packages
+# load relevant packages
 library(readxl)
 library(lubridate)
 library(zoo)
 library(tidyverse)
 library(scales)
-library(ggthemes)
 library(ggsci)
-library(ggExtra)
-library(ggforce)
-library(patchwork)
 
-#define initial variables
-source("functions_redone.R")
+# import written functions and store master sheet in memory
 master <- read_master("Data/data_input.xlsx")
+source("functions.R")
+
+# define parameters
 start_date <- as.Date("2020-01-01")
 end_date <- as.Date("2020-12-31")
 
-#define model parameters
 args_long <-
-  list(MPOR = 3, factor = 1.37, quantile = 0.974, quantile = 0.974,
-       lambda = 0.9593, n_day = 750, floor = FALSE,
-       absolute = FALSE, liq_group  = "PEQ01", short = FALSE)
+  list(
+    MPOR = 3, factor = 1.37, quantile = 0.974,
+    lambda = 0.9593, n_day = 750, floor = FALSE,
+    absolute = FALSE, liq_group = "PEQ01", short = FALSE
+  )
 
 args_short <-
-  list(MPOR = 3, factor = 1.37, quantile = 0.974, quantile = 0.974,
-       lambda = 0.9593, n_day = 750, floor = FALSE,
-       absolute = FALSE, liq_group  = "PEQ01", short = TRUE)
+  list(
+    MPOR = 3, factor = 1.37, quantile = 0.974,
+    lambda = 0.9593, n_day = 750, floor = FALSE,
+    absolute = FALSE, liq_group = "PEQ01", short = TRUE
+  )
 
-stress_short <- margin_calculator(product = "FESX", start = start_date, 
-                )
-stress_long <- margin_calculator(product = "FESX", start = start_date, 
-                            end = end_date, args = args_long_FESX,
-                            steps = F) |>
+stress_short <- calculate_SP_margin(
+  product = "FESX", start = start_date,
+  end = end_date, args = args_short
+) |>
   mutate(type = "STRESS")
 
-baseline_long <- calculate_FHS_margin(product = "FESX", start = start_date, 
-                                 end = end_date, args = args_long_FESX,
-                                 steps = F) |> 
-  mutate(type = "BASELINE") |> 
+# calculate margin requirements (FHS & STRESS for short and long)
+stress_long <- margin_calculator(
+  product = "FESX", start = start_date,
+  end = end_date, args = stress_long,
+  steps = FALSE
+) |>
+  mutate(type = "STRESS")
+
+fhs_long <- calculate_FHS_margin(
+  product = "FESX", start = start_date,
+  end = end_date, args = fhs_long,
+  steps = FALSE
+) |>
+  mutate(type = "BASELINE") |>
   rename(Margin = FHS_Margin)
 
 joined <- stress_long |>
   bind_rows(baseline_long)
 
 joined |>
-  ggplot(aes(x = DATE, y = Margin, color = type))+
-  geom_line() + 
-  labs(title = "",
-       color = NULL,
-       x = NULL,
-       y = NULL) + 
+  ggplot(aes(x = DATE, y = Margin, color = type)) +
+  geom_line() +
+  labs(
+    title = "",
+    color = NULL,
+    x = NULL,
+    y = NULL
+  ) +
   theme(
     panel.grid = element_blank(),
     panel.grid.minor.x = element_blank(),
@@ -59,5 +71,6 @@ joined |>
     legend.position = "bottom",
     plot.subtitle = element_text(size = 8, face = "italic"),
     plot.title = element_text(size = 10),
-    legend.key = element_rect(fill = "white")) +
+    legend.key = element_rect(fill = "white")
+  ) +
   scale_color_jama()
