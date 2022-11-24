@@ -1,7 +1,4 @@
 #load relevant packages
-library(readxl)
-library(lubridate)
-library(zoo)
 library(tidyverse)
 library(scales)
 library(ggsci)
@@ -50,29 +47,15 @@ args_short_FGBX <-
 
 #Visualization of Graph XX XX in final Thesis (label with graph number here to find easier!)
 FESX_Margin_long <-
-  margin_calculator(
+  calculate_margin(
     product = "FESX", start = start_date, end = end_date,
     args = args_long_FESX, steps = TRUE
   ) |>
-  select(DATE, MPOR_returns, Margin) |>
+  select(DATE, RET_MPOR, MARGIN) |>
   mutate(
-    Margin = Margin * -1,
-    MPOR_returns = lag(MPOR_returns, 3),
-    MPOR_returns = exp(MPOR_returns) - 1,
-    breach = ifelse(MPOR_returns < Margin, TRUE, FALSE)
-  )
-
-FGBX_Margin_long <-
-  margin_calculator(
-    product = "FGBX", start = start_date, end = end_date,
-    args = args_long_FGBX, steps = TRUE
-  ) |>
-  select(DATE, MPOR_returns, Margin) |>
-  mutate(
-    Margin = Margin * -1,
-    MPOR_returns = lag(MPOR_returns, 3),
-    MPOR_returns = exp(MPOR_returns) - 1,
-    breach = ifelse(MPOR_returns < Margin, TRUE, FALSE)
+    MARGIN = MARGIN * -1,
+    RET_MPOR = lag(RET_MPOR, 3),
+    breach = ifelse(RET_MPOR < MARGIN, TRUE, FALSE)
   )
 
 FESX_Margin_short <-
@@ -80,23 +63,14 @@ FESX_Margin_short <-
     product = "FESX", start = start_date, end = end_date,
     args = args_short, steps = TRUE
   ) |>
-  select(DATE, MPOR_returns, Margin) |>
+  select(DATE, RET_MPOR, MARGIN) |>
   mutate(
-    MPOR_returns = lag(MPOR_returns * -1, 3),
-    MPOR_returns = exp(MPOR_returns) - 1,
-    breach = ifelse(MPOR_returns > Margin, TRUE, FALSE)
+    MPOR_returns = lag(RET_MPOR * -1, 3),
+    breach = ifelse(RET_MPOR > MARGIN, TRUE, FALSE)
   )
 
-FGBX_Margin_short <- 
-  margin_calculator(product = "FGBX", start = start_date, end = end_date,
-                    args = args_short_FGBX, steps = TRUE)|>
-  select(DATE, MPOR_returns, Margin) |>
-  mutate(MPOR_returns = lag(MPOR_returns * -1, 3),
-         MPOR_returns = exp(MPOR_returns) - 1,
-         breach = ifelse(MPOR_returns > Margin, TRUE, FALSE))
-
 FESX_Margin <-
-  FESX_Margin_long |> 
+  FESX_Margin_long |>
   full_join(FESX_Margin_short, by = c("DATE")) |>
   rename(
     LONG = Margin.x,

@@ -1,5 +1,4 @@
 # load relevant packages
-library(zoo)
 library(tidyverse)
 library(scales)
 library(ggsci)
@@ -9,15 +8,18 @@ source("functions.R")
 master <- read_master("Data/data_input.xlsx")
 
 # define parameters
-start_date <- as.Date("2007-01-01")
+start_date <- as.Date("2005-01-01")
 end_date <- as.Date("2021-01-01")
 
-# plot graph
+# filter out FESX returns
 daily_returns <-
   master$returns |>
   filter(INST == "FESX") |>
-  filter(between(DATE, start_date, end_date)) |>
-  arrange(desc(DATE)) |>
+  filter(between(DATE, start_date, end_date))
+
+#plot graph
+out <-
+daily_returns |>
   ggplot(aes(x = DATE, y = exp(LOG_RET) - 1)) +
   geom_line() +
   scale_y_continuous(
@@ -25,7 +27,7 @@ daily_returns <-
     labels = scales::label_percent()
   ) +
   scale_x_continuous(
-    breaks = seq.Date(from = start_date, to = end_date, by = "year"),
+    breaks = seq.Date(from = start_date, to = end_date, by = "2 years"),
     labels = scales::label_date(format = "%Y")
   ) +
   theme_bw() +
@@ -36,7 +38,7 @@ daily_returns <-
   ) +
   theme(plot.title = element_text(size = 12, face = "bold"))
 
-ggsave("graphs/d_returns_FESX.png",
-  plot = d_returns_FESX,
+ggsave("Plots/Output/daily_returns_FESX.png",
+  plot = out,
   device = "png", dpi = 300, height = 6.03, width = 15.9, units = "cm"
 )

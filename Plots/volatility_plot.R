@@ -1,11 +1,7 @@
 # load relevant packages
-library(readxl)
-library(lubridate)
-library(zoo)
 library(tidyverse)
 library(scales)
 library(ggsci)
-library(ggExtra)
 
 # import written functions and store master sheet in memory
 master <- read_master("Data/data_input.xlsx")
@@ -13,6 +9,11 @@ source("functions.R")
 
 # function which calculates the 1d EWMA Volatility
 calculate_vola <- function(product, start, end, lambda, n_day, MPOR) {
+
+  require(magrittr)
+  require(zoo)
+  require(dplyr)
+
   # filter by product & Date
   returns <-
     master$returns |>
@@ -25,7 +26,8 @@ calculate_vola <- function(product, start, end, lambda, n_day, MPOR) {
   adj_cutoff <- round(cutoff / MPOR) * MPOR
   returns <- returns[(1:adj_cutoff), ]
 
-  # weights for calculation of Volatility -> INCLUDE ADJUSTMENT FACTOR AS IN PAPER
+  # weights for calculation of Volatility
+  # -> INCLUDE ADJUSTMENT FACTOR AS IN PAPER
   weights <- (1 - lambda) * ((lambda)^c(0:(n_day - 1)))
 
   vola <- rollapply(returns["LOG_RET"], n_day,
@@ -34,7 +36,6 @@ calculate_vola <- function(product, start, end, lambda, n_day, MPOR) {
     }, align = "left"
   )
 
-
   out <- tibble(
     DATE = returns$DATE[seq_along(vola)],
     VOLA = as.vector(vola)
@@ -42,7 +43,7 @@ calculate_vola <- function(product, start, end, lambda, n_day, MPOR) {
   return(out)
 }
 
-# define basic parameters
+# define function inputs
 start_date <- as.Date("2020-01-01")
 end_date <- as.Date("2020-12-31")
 lambda <- .95
@@ -50,40 +51,39 @@ n_day <- 750
 MPOR <- 1
 
 # calculate 1d EWMA for FESX FSMI, FBGX & FGBL
-vol_FESX <-
+vol_fesx <-
   calculate_vola(
     product = "FESX", start = start_date, end = end_date,
     lambda = lambda, n_day = n_day, MPOR = MPOR
   ) |>
-  rename(VOLA_FESX = VOLA)
+  rename(FESX = VOLA)
 
-vol_FSMI <-
+vol_fsmi <-
   calculate_vola(
     product = "FSMI", start = start_date, end = end_date,
     lambda = lambda, n_day = n_day, MPOR = MPOR
   ) |>
-  rename(VOLA_FSMI = VOLA)
+  rename(FSMI = VOLA)
 
-vol_FGBX <-
+vol_fgbx <-
   calculate_vola(
     product = "FGBX", start = start_date, end = end_date,
     lambda = lambda, n_day = n_day, MPOR = MPOR
   ) |>
-  rename(VOLA_FGBX = VOLA)
+  rename(FGBX = VOLA)
 
-
-vol_FGBL <-
+vol_fgbl <-
   calculate_vola(
     product = "FGBL", start = start_date, end = end_date,
     lambda = lambda, n_day = n_day, MPOR = MPOR
   ) |>
-  rename(VOLA_FGBL = VOLA)
+  rename(FGBL = VOLA)
 
-# combine Volatilities for Instruments
-combined <- vol_FESX |>
-  full_join(vol_FSMI, by = c("DATE")) |>
-  full_join(vol_FGBX, by = c("DATE")) |>
-  full_join(vol_FGBL, by = c("DATE")) |>
+# combine calculated volatilities for instruments
+combined <- vol_fesx |>
+  full_join(vol_fsmi, by = c("DATE")) |>
+  full_join(vol_fgbx, by = c("DATE")) |>
+  full_join(vol_fgbl, by = c("DATE")) |>
   na.omit() |>
   pivot_longer(
     cols = 2:5,
@@ -92,6 +92,7 @@ combined <- vol_FESX |>
   )
 
 # plot graph
+out <- 
 combined |>
   ggplot(aes(x = DATE, y = VOLA, color = SECURITY)) +
   geom_line() +
@@ -126,8 +127,13 @@ combined |>
     ),
     panel.background = element_rect(color = "black", fill = "white"),
     axis.text.x = element_text(angle = 45),
-    legend.position = "right",
+    legend.position = "bottom",
     plot.title = element_text(size = 12, face = "bold"),
     legend.key = element_rect(fill = "white")
   ) +
   scale_color_jama()
+
+ggsave("Plots/Output/ewma_1d.png",
+  dpi = 350, width = 5,
+  height = 5, units = "cm"
+)

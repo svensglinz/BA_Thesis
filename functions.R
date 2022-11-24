@@ -1,9 +1,9 @@
 
-#' EWMA_Vol calculates the exponentially weighted volatility of a return 
+#' EWMA_Vol calculates the exponentially weighted volatility of a return
 #' vector with a burn-in period of n_day and a decay factor lambda
 #' @param returns numerical vector of a financial return series
 #' @param n_day amount of days considered for volatility calculation
-#' @param lambda decay factor 
+#' @param lambda decay factor
 #' @return vector of calculated volatilities
 #' @examples
 #' returns <- rnorm(n = 500, sd = 1, mean = 0)
@@ -11,7 +11,8 @@
 #' lambda <- 0.95
 #' EWMA_vol(returns, n_day, lambda)
 
-EWMA_vol <- function(returns, n_day, lambda) {
+ewma_vol <- function(returns, n_day, lambda) {
+
   require(zoo)
 
   # calculate return weights
@@ -29,33 +30,35 @@ EWMA_vol <- function(returns, n_day, lambda) {
   return(out)
 }
 
-#' function which imports the master excel-sheet where all 
+#' function which imports the master excel-sheet where all
 #' essential information is stored and properly formats it for further use
 #' in the below functions
 #' @param path local path where excel sheet with returns is stored
-#' @return list which contains as sub-lists each individual sheet 
-#' of the excel file 
+#' @return list which contains as sub-lists each individual sheet
+#' of the excel file
 #' @examples
 #' path <- C:/Users/sveng/OneDrive/Dokumente/Schule/Studium/HSG/Thesis/BA_Thesis/Data
 #' master_file <- read_master(path)
 
-read_master <- function(path){
-
+read_master <- function(path) {
   require(readxl)
 
   stress_periods <- read_excel(path, sheet = "stress_periods")
-  stress_periods[1:3] <- lapply(stress_periods[1:3],
-                                function(x) as.Date(x, format = "%d/%m/%Y"))
+  stress_periods[1:3] <- lapply(
+    stress_periods[1:3],
+    function(x) as.Date(x, format = "%d/%m/%Y")
+  )
 
   returns <- read_excel(path, sheet = "returns")
   returns[1] <- as.Date(returns[[1]])
 
-  out <- list(stress_periods = stress_periods,
-              returns = returns)
+  out <- list(
+    stress_periods = stress_periods,
+    returns = returns
+  )
 
   return(out)
 }
-
 
 #' FUNCTION DESCRIPTION 
 #' @param product name of product (string) for which margin should be calculated. 
@@ -68,21 +71,25 @@ read_master <- function(path){
 #' #... which are needed to calculate a Margin
 #' @return data frame with columns data & FHS_Margin which contains one margin 
 #' calculation per date in between the specified date intervals
-#' @examples 
-#' #store master file with master function defined above 
+#' @examples
+#' #store master file with master function defined above
 #' master <- read_master(path)
-#' #specify arguments in args list 
+#' #specify arguments in args list
 #' args <- list(short = F, lambda = 0.975, MPOR = 3, n_day = 750, ...)
 #' #Calculate Margin for the Instrument "FESX"
 #' FHS_Margin <- calculate_FHS_margin("FESX", "01/01/2020", "01/05/2020", args)
 
 #MAYBE DO NOT WORK WITHIN MUTATE AND THE DATA FRAME BUT PICK APART INDIVIDUAL VECTORS???
 
-calculate_FHS_margin <- function(product, start, end = NA, args,
+calculate_fhs_margin <- function(product, start, end, args,
                                  steps = FALSE, abs = FALSE) {
 
-  require(tidyverse)
+  # load package dependencies
+  require(dplyr)
+  require(tidyr)
   require(zoo)
+  require(purrr)
+  require(magrittr)
 
   # get returns of finanial instrument from master
   returns <-
@@ -130,7 +137,7 @@ calculate_FHS_margin <- function(product, start, end = NA, args,
     nest(data = -BUCKET) |>
     mutate(
       EWMA_VOL = map(data, function(x) {
-        EWMA_vol(x[["RET_MPOR"]], (args$n_day / args$MPOR), args$lambda)
+        ewma_vol(x[["RET_MPOR"]], (args$n_day / args$MPOR), args$lambda)
       })
     ) |>
     unnest(cols = c("data", "EWMA_VOL")) |>
@@ -146,7 +153,8 @@ calculate_FHS_margin <- function(product, start, end = NA, args,
     ungroup() |>
     arrange(desc(DATE))
 
-  # calculate mean over buckets for each volatility and take mean. This is to smoothen
+  # calculate mean over buckets for each
+  # volatility and take mean. This is to smoothen
   # out the revaluation factor and it is below joined onto the data frame!
   revalue_factor <-
     rep(
@@ -185,7 +193,8 @@ calculate_FHS_margin <- function(product, start, end = NA, args,
     unnest(c(data, MARGIN)) |>
     arrange(desc(DATE))
 
-  # calculate the mean over three buckets as the final margin to smoothen out statistical fluctuations
+  # calculate the mean over three buckets as the final
+  # margin to smoothen out statistical fluctuations
   d <- d |>
     mutate(MARGIN = abs(rollapply(d$MARGIN,
       width = args$MPOR,
@@ -209,7 +218,7 @@ calculate_FHS_margin <- function(product, start, end = NA, args,
   }
 }
 
-#' FUNCTION DESCRIPTION 
+#' FUNCTION DESCRIPTION
 #' @param product name of product (string) for which margin should be calculated. 
 #' Name must be in column INST of the masterfile
 #' @param start string in format "dd/mm/yyyy". Start period for which margin should 
@@ -223,9 +232,11 @@ calculate_FHS_margin <- function(product, start, end = NA, args,
 #' @examples 
 #' ... --> SPECIFY EXAMPLE
 
-calculate_SP_margin <- function(product, start, end = NA, args, abs = F) {
+calculate_SP_margin <- function(product, start, end = NA, args, abs = FALSE) {
   require(zoo)
-  require(tidyverse)
+  require(tidyr)
+  require(magrittr)
+
 
   returns <-
     master$returns |>
@@ -272,7 +283,7 @@ calculate_SP_margin <- function(product, start, end = NA, args, abs = F) {
     unnest(cols = c("data"))
 
   Margin <- returns |>
-    mutate(INDEX = 1:nrow(returns)) |>
+    mutate(INDEX = seq_len(nrow(returns))) |>
     select(-LOG_RET) |>
     nest(data = DATE) |>
     mutate(MARGIN = map(
@@ -303,23 +314,32 @@ calculate_SP_margin <- function(product, start, end = NA, args, abs = F) {
 #' @examples 
 #' ... --> SPECIFY EXAMPLE
 
-calculate_margin <- function(product, start, end = NA, args, steps = FALSE){
+calculate_margin <- function(product, start, end, args, steps = FALSE) {
 
-  FHS <- calculate_FHS_margin(product = product, start = start, end = end, args = args, steps = steps)
-  SP <- calculate_SP_margin(product = product, start = start, end = end, args = args)
+  require(magrittr)
+  require(tidyr)
 
-  combined <- FHS |>
-    left_join(SP, by = c("DATE")) |>
+  fhs <- calculate_fhs_margin(
+    product = product, start = start,
+    end = end, args = args, steps = steps
+  )
+  sp <- calculate_SP_margin(
+    product = product, start = start,
+    end = end, args = args
+  )
+
+  combined <- fhs |>
+    left_join(sp, by = c("DATE")) |>
     rename(FHS_MARGIN = MARGIN.x, SP_MARGIN = MARGIN.y)
 
-  #larger of floor or FHS Margin
+  # larger of floor or FHS Margin
   combined$MARGIN <- pmax(combined$FHS_MARGIN, combined$SP_MARGIN)
 
-  #conditional output
-  if (steps){
-   return(combined)
+  # conditional output
+  if (steps) {
+    return(combined)
   }
-   return(combined |> select(DATE, MARGIN))
+  return(combined |> select(DATE, MARGIN))
 }
 
 # Function Descripiton
@@ -327,33 +347,36 @@ calculate_margin <- function(product, start, end = NA, args, steps = FALSE){
 #' @return
 #' @examples
 #returns some goodness Margins defined in the paper by which we measure a margin model 
-#How is this connected to the default fund thing? 
+#How is this connected to the default fund thing?
 
-summary_stats <- function(margin_df, start, end){
+summary_stats <- function(margin_df, start, end) {
 
-  require(tidyverse)
+  require(tidyr)
+  require(magrittr)
 
   margin_df <- margin_df |>
     filter(between(DATE, start, end)) |>
-    mutate(RET_MPOR = lag(RET_MPOR, 3),
-           CHANGE_1D = MARGIN / lead(MARGIN, 1),
-           CHANGE_5D = MARGIN / lead(MARGIN, 5),
-           CHANGE_30D = MARGIN / lead(MARGIN, 30))
+    mutate(
+      RET_MPOR = lag(RET_MPOR, 3),
+      CHANGE_1D = MARGIN / lead(MARGIN, 1),
+      CHANGE_5D = MARGIN / lead(MARGIN, 5),
+      CHANGE_30D = MARGIN / lead(MARGIN, 30)
+    )
 
-  N_observations <- margin_df |>
+  n_observations <- margin_df |>
     na.omit(RET_MPOR) |>
     length(RET_MPOR)
 
-  N_breaches <- margin_df |>
+  n_breaches <- margin_df |>
     filter(MARGIN < RET_MPOR * -1) |>
     nrow()
 
-  perc_breaches <- (N_breaches / N_observations) * 100
+  perc_breaches <- (n_breaches / n_observations) * 100
   realized_conf_level <- 100 - perc_breaches
 
-  #gives average shortfall in % not in absolute terms!!! (must check!!!)
+  # gives average shortfall in % not in absolute terms!!! (must check!!!)
   avg_shortfall <- margin_df |>
-  filter(MARGIN < RET_MPOR * -1) |>
+    filter(MARGIN < RET_MPOR * -1) |>
     mutate(shortfall = MARGIN + RET_MPOR) |>
     summarize(avg_shortfall = mean(shortfall)) |>
     pull(avg_shortfall)
@@ -361,7 +384,7 @@ summary_stats <- function(margin_df, start, end){
   max_shortfall <- margin_df |>
     filter(MARGIN < RET_MPOR * -1) |>
     mutate(shortfall = MARGIN + RET_MPOR) |>
-    summarize(max_shortfall = min(shortfall, na.rm TRUE)) |>
+    summarize(max_shortfall = min(shortfall, na.rm = TRUE)) |>
     pull(max_shortfall)
 
   costs <- mean(margin_df$MARGIN, na.rm = TRUE)
@@ -382,13 +405,13 @@ summary_stats <- function(margin_df, start, end){
 
   out <- tibble(
     type = c(
-      "N_breaches", "N_observations", "perc_breaches",
+      "n_breaches", "n_observations", "perc_breaches",
       "conf_level", "avg_shortfall",
       "max_shortfall", "costs", "peak_to_through",
       "max_1d", "max_5d", "max_30d"
     ),
     values = c(
-      N_breaches, N_observations, perc_breaches,
+      n_breaches, n_observations, perc_breaches,
       realized_conf_level,
       avg_shortfall, max_shortfall, costs,
       peak_to_through, max_1d, max_5d, max_30d
