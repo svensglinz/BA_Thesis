@@ -1,14 +1,12 @@
 # load relevant packages
-library(readxl)
-library(lubridate)
 library(zoo)
 library(tidyverse)
 library(scales)
 library(ggsci)
 
 # import written functions and store master sheet in memory
+source("functions.R")
 master <- read_master("Data/data_input.xlsx")
-source("functions_redone.R")
 
 # define parameters
 start_date <- as.Date("2007-01-01")

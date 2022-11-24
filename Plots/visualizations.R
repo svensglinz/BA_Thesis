@@ -645,7 +645,10 @@ FESX_out <- FESX_plot |>
   scale_color_jama() +
   facet_zoom(xlim = c(as.Date("2020-01-01"), as.Date("2021-01-01")))
 
-ggsave("graphs/FESX_plot.png", plot = FESX_out, device = "png", dpi = 300, height = 8.54, width = 16.1, units = "cm")
+ggsave("graphs/FESX_plot.png",
+  plot = FESX_out, device = "png",
+  dpi = 300, height = 8.54, width = 16.1, units = "cm"
+)
 
 
 ###############################################################################
