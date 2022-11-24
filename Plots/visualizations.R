@@ -10,7 +10,6 @@ library(ggExtra)
 library(ggforce)
 
 source("functions_redone.R")
-
 master <- read_master("Data/data_input.xlsx")
 
 ################################################################################

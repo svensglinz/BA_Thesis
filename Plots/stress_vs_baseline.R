@@ -1,16 +1,13 @@
 # load relevant packages
-library(readxl)
-library(lubridate)
-library(zoo)
 library(tidyverse)
 library(scales)
 library(ggsci)
 
 # import written functions and store master sheet in memory
-master <- read_master("Data/data_input.xlsx")
 source("functions.R")
+master <- read_master("Data/data_input.xlsx")
 
-# define parameters
+# define function inputs
 start_date <- as.Date("2020-01-01")
 end_date <- as.Date("2020-12-31")
 
@@ -28,33 +25,42 @@ args_short <-
     absolute = FALSE, liq_group = "PEQ01", short = TRUE
   )
 
-stress_short <- calculate_SP_margin(
+# calculate margin requirements (FHS & Floored for long and short)
+floored_short <- calculate_margin(
   product = "FESX", start = start_date,
-  end = end_date, args = args_short
-) |>
-  mutate(type = "STRESS")
-
-# calculate margin requirements (FHS & STRESS for short and long)
-stress_long <- margin_calculator(
-  product = "FESX", start = start_date,
-  end = end_date, args = stress_long,
+  end = end_date, args = args_short,
   steps = FALSE
 ) |>
-  mutate(type = "STRESS")
+  mutate(type = "FLOORED")
+
+floored_long <- calculate_margin(
+  product = "FESX", start = start_date,
+  end = end_date, args = args_long,
+  steps = FALSE
+) |>
+  mutate(TYPE = "FLOORED")
 
 fhs_long <- calculate_FHS_margin(
   product = "FESX", start = start_date,
-  end = end_date, args = fhs_long,
+  end = end_date, args = args_long,
   steps = FALSE
 ) |>
-  mutate(type = "BASELINE") |>
-  rename(Margin = FHS_Margin)
+  mutate(TYPE = "FHS")
 
-joined <- stress_long |>
-  bind_rows(baseline_long)
+fhs_short <- calculate_FHS_margin(
+  product = "FESX", start = start_date,
+  end = end_date, args = args_short,
+  steps = FALSE
+) |>
+mutate(type = "FHS")
 
+# join floored and unfloored margin requirements
+joined <- floored_long |>
+  bind_rows(fhs_long)
+
+# assemble plot
 joined |>
-  ggplot(aes(x = DATE, y = Margin, color = type)) +
+  ggplot(aes(x = DATE, y = MARGIN, color = TYPE)) +
   geom_line() +
   labs(
     title = "",
