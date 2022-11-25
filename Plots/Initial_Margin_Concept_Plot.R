@@ -1,6 +1,18 @@
 # load libraries
 library(tidyverse)
 library(ggExtra)
+library(showtext)
+
+# add fonts for plotting
+font_add(
+  family = "lmroman", regular = "Fonts/lmroman10_regular.ttf",
+  bold = "Fonts/lmroman10_bold.ttf",
+  italic = "Fonts/lmroman10_italic.ttf",
+  bolditalic = "Fonts/lmroman10_bolditalic.ttf"
+)
+
+showtext_auto(enable = TRUE)
+showtext_opts(dpi = 350)
 
 # create start path (identical for all paths)
 start <- c(100, rnorm(n = 99, mean = 0, sd = 1))
@@ -28,7 +40,7 @@ paths <- paths |>
 out <-
     paths |>
     ggplot(aes(x = index, y = value, group = values, color = col)) +
-    # geom_point(size = 0, color = "white") +
+    geom_point(size = 0, color = "white") + # points needed to add density below
     geom_line() +
     geom_vline(xintercept = 100) +
     geom_segment(aes(
@@ -45,14 +57,13 @@ out <-
     theme_minimal() +
     scale_y_continuous(breaks = seq(from = 50, to = 130, by = 10)) +
     theme(
+        text = element_text(family = "lmroman"),
         panel.grid = element_blank(),
         panel.background = element_rect(color = "black"),
         legend.position = "right",
         axis.title = element_text(size = 8),
-        plot.title = element_text(
-            size = 12, face = "bold",
-            margin = margin(0, 0, .5, 0, unit = "cm")
-        )
+        plot.title = element_text(size = 10, face = "bold"),
+        axis.text = element_text(size = 8)
     ) +
     scale_x_discrete(
         breaks = c(1, 100, 200, 300, 350, 400),
@@ -67,8 +78,9 @@ out <-
 # add marginal distribution of returns
 out <- ggMarginal(out, type = "density", margins = "y")
 
+out <- out + theme(text = element_text(family = "lmroman"))
 # save output
 ggsave("Plots/Output/IM_graph.png",
     plot = out, device = "png",
-    dpi = 300, height = 6.23, width = 12.9, units = "cm"
+    dpi = 350, height = 6.23, width = 12.9, units = "cm"
 )

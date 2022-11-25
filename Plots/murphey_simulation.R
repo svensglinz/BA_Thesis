@@ -6,6 +6,7 @@ library(tidyverse)
 library(scales)
 library(ggsci)
 library(patchwork)
+library(showtext)
 
 # import written functions and store master sheet in memory
 source("functions.R")

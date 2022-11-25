@@ -2,10 +2,22 @@
 library(tidyverse)
 library(scales)
 library(ggsci)
+library(showtext)
 
 # import written functions and store master sheet in memory
 source("functions.R")
 master <- read_master("Data/data_input.xlsx")
+
+# add fonts for plotting
+font_add(
+  family = "lmroman", regular = "Fonts/lmroman10_regular.ttf",
+  bold = "Fonts/lmroman10_bold.ttf",
+  italic = "Fonts/lmroman10_italic.ttf",
+  bolditalic = "Fonts/lmroman10_bolditalic.ttf"
+)
+
+showtext_auto(enable = TRUE)
+showtext_opts(dpi = 350)
 
 # define function inputs
 start_date <- as.Date("2020-01-01")
@@ -40,14 +52,14 @@ floored_long <- calculate_margin(
 ) |>
   mutate(TYPE = "FLOORED")
 
-fhs_long <- calculate_FHS_margin(
+fhs_long <- calculate_fhs_margin(
   product = "FESX", start = start_date,
   end = end_date, args = args_long,
   steps = FALSE
 ) |>
   mutate(TYPE = "FHS")
 
-fhs_short <- calculate_FHS_margin(
+fhs_short <- calculate_fhs_margin(
   product = "FESX", start = start_date,
   end = end_date, args = args_short,
   steps = FALSE

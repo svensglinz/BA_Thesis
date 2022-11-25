@@ -7,6 +7,18 @@ library(ggsci)
 source("functions.R")
 master <- read_master("Data/data_input.xlsx")
 
+# add fonts for plotting
+font_add(
+  family = "lmroman", regular = "Fonts/lmroman10_regular.ttf",
+  bold = "Fonts/lmroman10_bold.ttf",
+  italic = "Fonts/lmroman10_italic.ttf",
+  bolditalic = "Fonts/lmroman10_bolditalic.ttf"
+)
+
+showtext_auto(enable = TRUE)
+showtext_opts(dpi = 350)
+
+
 # function which calculates the 1d EWMA Volatility
 calculate_vola <- function(product, start, end, lambda, n_day, MPOR) {
 
@@ -93,13 +105,15 @@ combined <- vol_fesx |>
 
 # plot graph
 out <-
-combined |>
+  combined |>
   ggplot(aes(x = DATE, y = VOLA, color = SECURITY)) +
   geom_line() +
   labs(
     title = "1d EWMA weighted Volatility Returns",
-    subtitle = bquote(paste(lambda, " = ", .(lambda),
-    ", Burn-in = ", .(n_day))),
+    subtitle = bquote(paste(
+      lambda, " = ", .(lambda),
+      ", Burn-in = ", .(n_day)
+    )),
     y = NULL,
     x = NULL,
     color = NULL
@@ -117,23 +131,30 @@ combined |>
     labels = scales::label_date(format = "%b")
   ) +
   theme(
+    text = element_text(family = "lmroman"),
     panel.grid.major.x = element_blank(),
     panel.grid.minor.x = element_blank(),
     panel.grid.minor.y = element_blank(),
     panel.grid = element_line(
-      color = "grey",
-      linetype = 2,
-      size = 0.5
+      color = "darkgrey",
+      linetype = "dashed",
+      size = .3
     ),
     panel.background = element_rect(color = "black", fill = "white"),
     axis.text.x = element_text(angle = 45),
     legend.position = "bottom",
-    plot.title = element_text(size = 12, face = "bold"),
-    legend.key = element_rect(fill = "white")
+    plot.title = element_text(size = 10, face = "bold"),
+    plot.subtitle = element_text(size = 7, face = "italic", family = "sans"),
+    legend.text = element_text(size = 7),
+    axis.text = element_text(size = 8),
+    legend.key.size = unit(.2, "cm"),
+    legend.box.spacing = unit(0, "pt"),
+    axis.ticks.x = element_line(color = "black"),
+    plot.background = element_rect(fill = "white")
   ) +
   scale_color_jama()
 
 ggsave("Plots/Output/ewma_1d.png",
-  dpi = 350, width = 5,
-  height = 5, units = "cm"
+  dpi = 350, height = 6.32,
+  width = 7.86, units = "cm"
 )

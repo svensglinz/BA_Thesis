@@ -3,6 +3,7 @@ library(lubridate)
 library(tidyverse)
 library(scales)
 library(ggsci)
+library(showtext)
 
 df <- read_csv("Data/Eurex_Data/VM_IM_Calls.csv",
   col_types = cols(FACT_DATE = col_date(format = "%d/%m/%Y"))
