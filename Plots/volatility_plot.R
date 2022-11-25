@@ -4,8 +4,8 @@ library(scales)
 library(ggsci)
 
 # import written functions and store master sheet in memory
-master <- read_master("Data/data_input.xlsx")
 source("functions.R")
+master <- read_master("Data/data_input.xlsx")
 
 # function which calculates the 1d EWMA Volatility
 calculate_vola <- function(product, start, end, lambda, n_day, MPOR) {
@@ -92,7 +92,7 @@ combined <- vol_fesx |>
   )
 
 # plot graph
-out <- 
+out <-
 combined |>
   ggplot(aes(x = DATE, y = VOLA, color = SECURITY)) +
   geom_line() +
