@@ -37,7 +37,7 @@ ewma_vol <- function(returns, n_day, lambda) {
 #' @return list which contains as sub-lists each individual sheet
 #' of the excel file
 #' @examples
-#' path <- C:/Users/sveng/OneDrive/Dokumente/Schule/Studium/HSG/Thesis/BA_Thesis/Data
+#' path <- C:/Users/username/Desktop/Data
 #' master_file <- read_master(path)
 
 read_master <- function(path) {
@@ -60,7 +60,7 @@ read_master <- function(path) {
   return(out)
 }
 
-#' FUNCTION DESCRIPTION 
+#' FUNCTION DESCRIPTION
 #' @param product name of product (string) for which margin should be calculated. 
 #' Name must be in column INST of the masterfile
 #' @param start string in format "dd/mm/yyyy". Start period for which margin should 
@@ -208,8 +208,6 @@ calculate_fhs_margin <- function(product, start, end, args,
       mutate(MARGIN = PRICE * MARGIN)
   }
 
-
-
   # return output
   if (steps) {
     return(d)
@@ -232,7 +230,7 @@ calculate_fhs_margin <- function(product, start, end, args,
 #' @examples 
 #' ... --> SPECIFY EXAMPLE
 
-calculate_SP_margin <- function(product, start, end = NA, args, abs = FALSE) {
+calculate_sp_margin <- function(product, start, end = NA, args, abs = FALSE) {
   require(zoo)
   require(tidyr)
   require(magrittr)
@@ -323,7 +321,7 @@ calculate_margin <- function(product, start, end, args, steps = FALSE) {
     product = product, start = start,
     end = end, args = args, steps = steps
   )
-  sp <- calculate_SP_margin(
+  sp <- calculate_sp_margin(
     product = product, start = start,
     end = end, args = args
   )
