@@ -8,7 +8,7 @@ library(latex2exp)
 # import written functions and store master sheet in memory
 source("functions.R")
 master <- read_master("Data/data_input.xlsx")
-
+ 
 # add fonts for plotting
 font_add(
   family = "lmroman",
@@ -20,7 +20,6 @@ font_add(
 
 showtext_auto(enable = TRUE)
 showtext_opts(dpi = 350)
-
 
 # function which calculates the 1d EWMA Volatility
 calculate_vola <- function(product, start, end, lambda, n_day, MPOR) {
