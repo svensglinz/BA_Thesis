@@ -46,6 +46,10 @@ collateral <- collateral |>
 collateral$SECURITY_TYPE <- fct_expand(collateral$SECURITY_TYPE, "CASH")
 collateral$SECURITY_TYPE[collateral$COLLATERAL_TYPE == "C"] <- "CASH"
 
+#reorder factors for plotting!!! (both plots must have same arrangement!)
+fct_reorder()(collateral$SECURITY_TYPE, levels = c("SOVEREIGN GOVERNMENT BONDS", "CASH", 
+""))
+
 out <-
     collateral |>
     filter(
@@ -71,9 +75,12 @@ out <-
         subtitle = "red line = 20th March 2020",
         y = NULL,
         x = NULL,
-        color = NULL
+        color = NULL,
+        caption = "Own Depiction | Data Source: Eurex Clearing AG"
     ) +
     theme(
+        text = element_text(family = "lmroman"),
+        plot.caption = element_text(size = 7),
         panel.grid.minor = element_blank(),
         panel.grid.major.x = element_blank(),
         plot.title = element_text(size = 10, face = "bold"),
@@ -83,10 +90,11 @@ out <-
         panel.background = element_rect(fill = "white", color = "white"),
         strip.text = element_text(size = 6),
         axis.ticks.x = element_line(color = "black"),
-        plot.background = element_rect(fill = "white")
+        plot.background = element_rect(fill = "white", color = "white")
     ) +
     facet_wrap(~SECURITY_TYPE, scales = "free_y")
 
+# save output
 ggsave("Plots/Output/collateral_share.png",
     plot = out,
     device = "png", dpi = 350, height = 8.5,

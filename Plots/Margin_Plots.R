@@ -177,3 +177,20 @@ ggsave("margins.png",
   plot = out, device = png,
   width = 15.9, height = 8.5, unit = "cm"
 )
+
+
+
+args <-
+  list(
+    MPOR = 3, factor = 1.37, quantile = 0.974,
+    lambda = 0.9593, n_day = 750, floor = FALSE,
+    absolute = FALSE, liq_group = "PEQ01",
+    short = FALSE
+  )
+
+margin <- calculate_margin(product = "FESX", start = start_date,
+end = end_date, args = args, steps = FALSE)
+
+margin |> 
+ggplot(aes(x = DATE, y = MARGIN))+
+geom_line()

@@ -3,7 +3,6 @@ library(tidyverse)
 library(scales)
 library(ggsci)
 library(showtext)
-library(showtext)
 
 # import written functions and store master sheet in memory
 source("functions.R")
@@ -11,7 +10,8 @@ master <- read_master("Data/data_input.xlsx")
 
 # add fonts for plotting
 font_add(
-  family = "lmroman", regular = "Fonts/lmroman12-regular.otf",
+  family = "lmroman",
+  regular = "Fonts/lmroman12-regular.otf",
   bold = "Fonts/lmroman12-bold.otf",
   italic = "Fonts/lmroman12-italic.otf",
   bolditalic = "Fonts/lmroman10_bolditalic.ttf"
@@ -34,28 +34,30 @@ daily_returns <-
 out <-
   daily_returns |>
   ggplot(aes(x = DATE, y = exp(LOG_RET) - 1)) +
-  geom_line() +
+  geom_line(size = .3) +
   scale_y_continuous(
     breaks = seq(from = -0.2, to = 0.2, by = 0.05),
     labels = scales::label_percent()
   ) +
-  scale_x_continuous(
+  scale_x_date(
     breaks = seq.Date(from = start_date, to = end_date, by = "2 years"),
-    labels = scales::label_date(format = "%y")
+    labels = scales::label_date(format = "%y"),
+    expand = expansion(mult = .02)
   ) +
   theme_bw() +
   labs(
-    title = "Daily Returns FESX",
+    title = "Daily FESX Returns",
     y = NULL,
     x = NULL,
-    caption = "All returns from front month contract (Expiry 0-90 days)
-    Source: Eurex Clearing AG"
+    subtitle = "Front month contract (Expiry 0-90 days)",
+    caption = "Own Depiction | Data Source: Eurex Clearing AG, Bloomberg"
   ) +
   theme(
     text = element_text(family = "lmroman"),
     plot.title = element_text(size = 10, face = "bold"),
     plot.caption = element_text(size = 7),
     axis.text = element_text(size = 8),
+    plot.subtitle = element_text(size = 8, face = "italic"),
     panel.grid.minor = element_blank(),
     panel.grid.major.x = element_blank(),
     panel.grid.major.y = element_line(
@@ -64,7 +66,9 @@ out <-
     )
   )
 
+# save output
 ggsave("Plots/Output/daily_returns_FESX.png",
   plot = out,
-  device = "png", dpi = 300, height = 6.32, width = 7.86, units = "cm",
+  device = "png", dpi = 300, height = 6.32,
+  width = 7.86, units = "cm",
 )

@@ -2,6 +2,8 @@
 library(tidyverse)
 library(scales)
 library(ggsci)
+library(showtext)
+library(latex2exp)
 
 # import written functions and store master sheet in memory
 source("functions.R")
@@ -9,7 +11,8 @@ master <- read_master("Data/data_input.xlsx")
 
 # add fonts for plotting
 font_add(
-  family = "lmroman", regular = "Fonts/lmroman10_regular.ttf",
+  family = "lmroman",
+  regular = "Fonts/lmroman10_regular.ttf",
   bold = "Fonts/lmroman10_bold.ttf",
   italic = "Fonts/lmroman10_italic.ttf",
   bolditalic = "Fonts/lmroman10_bolditalic.ttf"
@@ -110,13 +113,11 @@ out <-
   geom_line() +
   labs(
     title = "1d EWMA weighted Volatility Returns",
-    subtitle = bquote(paste(
-      lambda, " = ", .(lambda),
-      ", Burn-in = ", .(n_day)
-    )),
+    subtitle = TeX("$\\lambda$ = .95, burn-in = 750", italic = TRUE),
     y = NULL,
     x = NULL,
-    color = NULL
+    color = NULL,
+    caption = "Own Depiction | Data Source: Eurex Clearing AG"
   ) +
   scale_y_continuous(
     breaks = seq(from = 0.01, to = 0.06, by = 0.01),
@@ -128,20 +129,20 @@ out <-
       to = as.Date("2020-12-31"),
       by = "month"
     ),
-    labels = scales::label_date(format = "%b")
+    labels = scales::label_date(format = "%b"),
+    expand = expansion(mult = .02)
   ) +
   theme(
     text = element_text(family = "lmroman"),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    panel.grid.minor.y = element_blank(),
-    panel.grid = element_line(
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(
       color = "darkgrey",
       linetype = "dashed",
       size = .3
     ),
     panel.background = element_rect(color = "black", fill = "white"),
     axis.text.x = element_text(angle = 45),
+    plot.caption = element_text(size = 8),
     legend.position = "bottom",
     plot.title = element_text(size = 10, face = "bold"),
     plot.subtitle = element_text(size = 7, face = "italic", family = "sans"),
@@ -149,10 +150,11 @@ out <-
     axis.text = element_text(size = 8),
     legend.key.size = unit(.2, "cm"),
     legend.box.spacing = unit(0, "pt"),
+    legend.key = element_rect(fill = "white", color = "white"),
     axis.ticks.x = element_line(color = "black"),
-    plot.background = element_rect(fill = "white")
+    plot.background = element_rect(fill = "white", color = "white")
   ) +
-  scale_color_jama()
+  scale_color_jama(breaks = c("FESX", "FSMI", "FGBX", "FGBL"))
 
 ggsave("Plots/Output/ewma_1d.png",
   dpi = 350, height = 6.32,

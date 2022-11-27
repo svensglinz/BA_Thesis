@@ -41,17 +41,18 @@ out <-
     ggplot(aes(x = FACT_DATE, y = IM_EUR / 10^9, fill = PRODUCT_GROUP)) +
     geom_area(position = "stack") +
     scale_y_continuous(breaks = seq(from = 0, to = 80, by = 20),
-    expand = expansion(mult = c(.01,.05))) +
+    expand = expansion(mult = c(.01, .05))) +
     scale_x_date(breaks = seq.Date(
         from = start_date,
         to = end_date, by = "month"
     ), labels = scales::label_date(format = "%b"),
-    expand = expansion(mult = c(.005,.005))) +
+    expand = expansion(mult = c(.005, .005))) +
 labs(
     title = "Initial Margin per Asset Class (in Bio EUR)",
     x = NULL,
     y = NULL,
-    fill = NULL
+    fill = NULL,
+    caption = "Own Depiction | Source: Eurex Clearing AG"
 ) +
     theme(
         text = element_text(family = "lmroman"),
@@ -62,7 +63,8 @@ labs(
         legend.key.size = unit(.4, "cm"),
         plot.background = element_rect(fill = "white", color = "white"),
         panel.background = element_rect(fill = "white", color = "black"),
-        axis.ticks = element_line(color = "black")
+        axis.ticks = element_line(color = "black"),
+        plot.caption = element_text(size = 7)
     ) +
     scale_fill_jama(labels = c(
         "Equity Derivatives",
@@ -75,4 +77,3 @@ ggsave("Plots/Output/IM_per_asset.png",
     device = "png", dpi = 350, height = 8.5,
     width = 15.9, units = "cm"
 )
-

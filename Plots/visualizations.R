@@ -33,59 +33,6 @@ IMC |>
   ggplot(aes(x = Description, y = Volume, group = Typpe, color = Typpe)) +
   geom_line()
 
-
-# eligible securities
-securities <- read_csv("Data/Eurex_Data/eligible_securities.csv",
-  col_types = cols(
-    SECURITY_EVALUATION_FACTOR = col_double(),
-    FACT_DATE = col_date(format = "%d/%m/%Y"),
-    SECURITY_TYPE = readr::col_factor()
-  )
-)
-
-# ALSO INCLUDE A SUMMARY TABLE WHICH SHOWS HOW MANY BONDS THIS DATA SET INCLUDES!!!!!!!
-
-# also here in title provide average number of observations per single date  ????
-
-################################################################################
-# EWMA VOLATILITY CALCULATION                                                   #
-#                                                                              #
-#                                                                              #
-################################################################################
-
-securities_plot <- securities |>
-  group_by(SECURITY_TYPE, FACT_DATE) |>
-  filter(SECURITY_TYPE %in% c(
-    "BANK BONDS", "CORPORATE BONDS",
-    "SOVEREIGN GOVERNMENT BONDS", "STATE AGENCIES",
-    "STATE/MUNICIPAL BONDS", "STOCKS"
-  )) |>
-  summarize(avg_haircut = mean(SECURITY_EVALUATION_FACTOR, na.rm = T)) |>
-  ggplot(aes(x = FACT_DATE, y = avg_haircut)) +
-  geom_vline(xintercept = as.Date("2020-03-01"), color = "red", size = 2, alpha = .2) +
-  geom_line() +
-  theme(
-    panel.grid.minor = element_blank(),
-    panel.grid.major.x = element_blank(),
-    plot.title = element_text(size = 12, face = "bold"),
-    panel.grid = element_line(color = "grey"),
-    strip.background = element_rect(color = "grey", fill = "grey"),
-    panel.background = element_rect(fill = "white"),
-    strip.text = element_text(size = 6)
-  ) +
-  labs(
-    title = "sfsf",
-    x = "",
-    y = ""
-  ) +
-  facet_wrap(~SECURITY_TYPE)
-
-ggsave("graphs/securities_plot.png",
-  plot = securities_plot, device = "png",
-  dpi = 300, height = 8.5, width = 15.9, units = "cm"
-)
-
-
 # collateral value analysis during the crisis!
 
 ################################################################################
@@ -133,7 +80,10 @@ col_plot <-
   ) | COLLATERAL_TYPE == "C") |>
   ggplot(aes(x = FACT_DATE, y = perc)) +
   geom_line() +
-  geom_vline(xintercept = as.Date("2020-03-01"), color = "red", size = 2, alpha = .2) +
+  geom_vline(
+    xintercept = as.Date("2020-03-01"),
+    color = "red", size = 2, alpha = .2
+  ) +
   scale_y_continuous(labels = scales::percent_format()) +
   labs(
     title = "",
@@ -152,7 +102,10 @@ col_plot <-
   ) +
   facet_wrap(~SECURITY_TYPE, scales = "free_y")
 
-ggsave("graphs/collateral.png", plot = col_plot, device = "png", dpi = 300, height = 8.5, width = 15.9, units = "cm")
+ggsave("graphs/collateral.png",
+  plot = col_plot, device = "png",
+  dpi = 300, height = 8.5, width = 15.9, units = "cm"
+)
 
 
 ################################################################################
@@ -240,7 +193,10 @@ IM_graph <-
 
 IM_graph <- ggMarginal(IM_graph, type = "density", margins = "y")
 
-ggsave("graphs/IM_graph.png", plot = IM_graph, device = "png", dpi = 300, height = 6.23, width = 12.9, units = "cm")
+ggsave("graphs/IM_graph.png",
+  plot = IM_graph, device = "png", dpi = 300,
+  height = 6.23, width = 12.9, units = "cm"
+)
 
 empty <- tibble(NULL)
 
@@ -254,7 +210,10 @@ empty_CCP <-
   )
 labs(title = "CCP Clearing")
 
-ggsave("graphs/empty_CCP.png", plot = empty_CCP, device = "png", dpi = 300, height = 6.63, width = 7.34, units = "cm")
+ggsave("graphs/empty_CCP.png",
+  plot = empty_CCP, device = "png",
+  dpi = 300, height = 6.63, width = 7.34, units = "cm"
+)
 
 empty_bilateral <-
   empty |>
@@ -266,7 +225,10 @@ empty_bilateral <-
   ) +
   labs(title = "Bilateral Clearing")
 
-ggsave("graphs/empty_bilateral.png", plot = empty_bilateral, device = "png", dpi = 300, height = 6.63, width = 7.34, units = "cm")
+ggsave("graphs/empty_bilateral.png",
+  plot = empty_bilateral, device = "png",
+  dpi = 300, height = 6.63, width = 7.34, units = "cm"
+)
 
 empty_Closeout <-
   empty |>
@@ -278,7 +240,10 @@ empty_Closeout <-
   ) +
   labs(title = "Position Close Out")
 
-ggsave("graphs/empty_Closeout.png", plot = empty_Closeout, device = "png", dpi = 300, height = 5.97, width = 8.41, units = "cm")
+ggsave("graphs/empty_Closeout.png",
+  plot = empty_Closeout, device = "png", dpi = 300,
+  height = 5.97, width = 8.41, units = "cm"
+)
 
 empty_Porting <-
   empty |>
@@ -290,7 +255,10 @@ empty_Porting <-
   ) +
   labs(title = "Client Position Porting")
 
-ggsave("graphs/empty_Porting.png", plot = empty_Porting, device = "png", dpi = 300, height = 5.97, width = 7.52, units = "cm")
+ggsave("graphs/empty_Porting.png",
+  plot = empty_Porting, device = "png",
+  dpi = 300, height = 5.97, width = 7.52, units = "cm"
+)
 
 ################################################################################
 # EWMA VOLATILITY CALCULATION                                                   #

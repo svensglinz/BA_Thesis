@@ -73,6 +73,7 @@ joined <-
         RATIO = COLLATERAL / TOTAL_REQ
     )
 
+# generate plot
 out <-
     joined |>
     ggplot(aes(x = FACT_DATE, RATIO - 1)) +
@@ -85,8 +86,9 @@ out <-
         title = "Daily Overcollateralization",
         x = NULL,
         y = NULL,
-        subtitle = "Total Margin & Default Requirements / Total Deposited Collateral",
-        caption = "Own depiction, Data Source: Eurex Clearing"
+        subtitle = paste("Excess of Total Margin -& Deault Fund Requirement \n",
+        "over Deposited Collateral (Post Haircut)", sep = ""),
+        caption = "Own depiction | Data Source: Eurex Clearing"
     ) +
     scale_y_continuous(
         labels = scales::label_percent()
@@ -96,7 +98,8 @@ out <-
             from = start_date,
             to = end_date, by = "3 months"
         ),
-        labels = scales::label_date(format = "%b-%y")
+        labels = scales::label_date(format = "%b-%y"),
+        expand = expansion(mult = .02)
     ) +
 theme(
     text = element_text(family = "lmroman"),
@@ -106,12 +109,22 @@ theme(
         color = "darkgrey",
         linetype = "dashed", size = .3
     ),
-    plot.subtitle = element_text(size = 8, face = "italic"),
+    plot.subtitle = element_text(size = 8, face = "italic", hjust = 0),
     axis.text = element_text(size = 7),
-    plot.caption = element_text(size = 7)
+    plot.caption = element_text(size = 7),
+    plot.margin = margin(t = 0, r = .5, b = 0, l = 0, "cm")
+)
+
+# save output
+ggsave("Plots/Output/overcollateralization.png",
+    plot = out,
+    device = "png", dpi = 350, height = 6.5,
+    width = 8.1, units = "cm"
 )
 
 # https://www.blackrock.com/corporate/literature/publication/bcbs-cpmi-iosco-margin-report-blackrock-response.pdf
 # opinion by blackrock on overcollaterlaization during covid
 
 # large overcoll could also mean that companies already insure against massive rises by proactively posting  more margin!!!
+
+

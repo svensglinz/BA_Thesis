@@ -5,14 +5,18 @@ library(showtext)
 
 # add fonts for plotting
 font_add(
-  family = "lmroman", regular = "Fonts/lmroman10_regular.ttf",
-  bold = "Fonts/lmroman10_bold.ttf",
-  italic = "Fonts/lmroman10_italic.ttf",
-  bolditalic = "Fonts/lmroman10_bolditalic.ttf"
+    family = "lmroman",
+    regular = "Fonts/lmroman10_regular.ttf",
+    bold = "Fonts/lmroman10_bold.ttf",
+    italic = "Fonts/lmroman10_italic.ttf",
+    bolditalic = "Fonts/lmroman10_bolditalic.ttf"
 )
 
 showtext_auto(enable = TRUE)
 showtext_opts(dpi = 350)
+
+# set seed for replicability
+set.seed(4)
 
 # create start path (identical for all paths)
 start <- c(100, rnorm(n = 99, mean = 0, sd = 1))
@@ -37,10 +41,9 @@ paths <- paths |>
     pivot_longer(-c(index, col), names_to = "values")
 
 # plot graph
-out <-
+graph <-
     paths |>
     ggplot(aes(x = index, y = value, group = values, color = col)) +
-    geom_point(size = 0, color = "white") + # points needed to add density below
     geom_line() +
     geom_vline(xintercept = 100) +
     geom_segment(aes(
@@ -52,10 +55,11 @@ out <-
     labs(
         x = "Time",
         y = "Value",
-        title = "Concept of Initial Margin"
+        title = "Concept of Initial Margin",
+        caption = "Own Depiction"
     ) +
     theme_minimal() +
-    scale_y_continuous(breaks = seq(from = 50, to = 130, by = 10)) +
+    scale_y_continuous(breaks = seq(from = 50, to = 140, by = 10)) +
     theme(
         text = element_text(family = "lmroman"),
         panel.grid = element_blank(),
@@ -63,7 +67,9 @@ out <-
         legend.position = "right",
         axis.title = element_text(size = 8),
         plot.title = element_text(size = 10, face = "bold"),
-        axis.text = element_text(size = 8)
+        axis.text = element_text(size = 8),
+        plot.caption = element_text(size = 8),
+        plot.margin = margin(t = 0, b = 0, l = 0, r = 2, "cm")
     ) +
     scale_x_discrete(
         breaks = c(1, 100, 200, 300, 350, 400),
@@ -75,12 +81,39 @@ out <-
     ) +
     scale_color_identity()
 
-# add marginal distribution of returns
-out <- ggMarginal(out, type = "density", margins = "y")
+# create density plot (density of all points of grey line, not only end path
+# for "more normal-dist looking" density)
+dens <- paths |>
+    filter(col == "darkgrey") |>
+    ggplot(aes(x = value)) +
+    geom_density() +
+    theme(
+        panel.grid = element_blank(),
+        panel.background = element_rect(
+            fill = "transparent",
+            color = "transparent"
+        ),
+        plot.background = element_rect(
+            fill = "transparent",
+            color = "transparent"
+        ),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        plot.margin = margin(r = 0, l = 0, b = -1, t = -1, unit = "cm"),
+        axis.title = element_blank()
+    ) +
+    coord_flip()
 
-out <- out + theme(text = element_text(family = "lmroman"))
+# assemble two plots
+out <-
+    graph + inset_element(dens,
+        l = .99, b = .2, r = 1.2,
+        t = .8, align_to = "panel"
+    )
+
 # save output
 ggsave("Plots/Output/IM_graph.png",
     plot = out, device = "png",
-    dpi = 350, height = 6.23, width = 12.9, units = "cm"
+    dpi = 350, width = 12.89, height = 6.23, unit = "cm"
 )

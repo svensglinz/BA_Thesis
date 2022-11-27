@@ -66,17 +66,20 @@ out <-
         strip.background = element_rect(color = "grey", fill = "grey"),
         panel.background = element_rect(fill = "white", color = "white"),
         strip.text = element_text(size = 6),
+        plot.caption = element_text(size = 7),
         axis.ticks.x = element_line(color = "black"),
         plot.background = element_rect(fill = "white", color = "white")
     ) +
     labs(
         title = "Evolution of Collateral Haircuts",
         subtitle = "red line = 20th March 2020",
+        caption = "Own Depiction | Data Source: Eurex Clearing AG",
         x = NULL,
         y = NULL
     ) +
     facet_wrap(~SECURITY_TYPE, scales = "free_y")
 
+# save output
 ggsave("Plots/Output/collateral_haircut.png",
     plot = out, device = "png",
     dpi = 350, height = 8.5, width = 15.9, units = "cm"

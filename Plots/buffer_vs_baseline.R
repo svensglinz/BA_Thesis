@@ -1,5 +1,4 @@
 # load relevant packages
-library(readxl)
 library(tidyverse)
 library(scales)
 library(ggsci)
@@ -13,7 +12,7 @@ start_date <- as.Date("2005-01-01")
 end_date <- as.Date("2021-12-31")
 
 # define model parameters
-args_long_FESX <-
+args_long_fesx <-
   list(
     MPOR = 3, factor = 1.37, quantile = 0.974,
     lambda = 0.9593, n_day = 750, floor = FALSE,
@@ -21,7 +20,7 @@ args_long_FESX <-
     short = FALSE
   )
 
-FHS_Margin <-
+fhs_Margin <-
   calculate_FHS_margin(
     product = "FESX", start = start_date, end = end_date,
     args = args_long_FESX, steps = FALSE
