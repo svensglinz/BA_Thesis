@@ -90,3 +90,8 @@ fhs_long_summary <-
 
 fhs_short_summary <-
     summary_stats(fhs_short, start = start_date, end = end_date)
+
+plot(100)
+library(tidyverse)
+mtcars |> ggplot(aes(x = cyl, y = mpg)) +
+    geom_point()
