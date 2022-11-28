@@ -26,7 +26,7 @@ fhs_Margin <-
     args = args_long_FESX, steps = FALSE
   )
 
-#calculate day to day margin difference in % and absolute!
+# calculate day to day margin difference in % and absolute!
 
 diff_abs <- c(diff(FHS_Margin$FHS_Margin, lag = 1), NA)
 FHS_Margin |>

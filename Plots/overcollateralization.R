@@ -16,7 +16,6 @@ font_add(
 showtext_auto(enable = TRUE)
 showtext_opts(dpi = 350)
 
-# define parameters
 # define function paremeters
 start_date <- as.Date("2020-01-01")
 end_date <- as.Date("2022-01-01")
@@ -87,7 +86,9 @@ out <-
         x = NULL,
         y = NULL,
         subtitle = paste("Excess of Total Margin -& Deault Fund Requirement \n",
-        "over Deposited Collateral (Post Haircut)", sep = ""),
+            "over Deposited Collateral (Post Haircut)",
+            sep = ""
+        ),
         caption = "Own depiction | Data Source: Eurex Clearing"
     ) +
     scale_y_continuous(
@@ -101,19 +102,19 @@ out <-
         labels = scales::label_date(format = "%b-%y"),
         expand = expansion(mult = .02)
     ) +
-theme(
-    text = element_text(family = "lmroman"),
-    plot.title = element_text(size = 10, face = "bold"),
-    panel.background = element_rect(color = "black", fill = "white"),
-    panel.grid.major.y = element_line(
-        color = "darkgrey",
-        linetype = "dashed", size = .3
-    ),
-    plot.subtitle = element_text(size = 8, face = "italic", hjust = 0),
-    axis.text = element_text(size = 7),
-    plot.caption = element_text(size = 7),
-    plot.margin = margin(t = 0, r = .5, b = 0, l = 0, "cm")
-)
+    theme(
+        text = element_text(family = "lmroman"),
+        plot.title = element_text(size = 10, face = "bold"),
+        panel.background = element_rect(color = "black", fill = "white"),
+        panel.grid.major.y = element_line(
+            color = "darkgrey",
+            linetype = "dashed", size = .3
+        ),
+        plot.subtitle = element_text(size = 8, face = "italic", hjust = 0),
+        axis.text = element_text(size = 7),
+        plot.caption = element_text(size = 7),
+        plot.margin = margin(t = 0, r = .5, b = 0, l = 0, "cm")
+    )
 
 # save output
 ggsave("Plots/Output/overcollateralization.png",
@@ -126,5 +127,3 @@ ggsave("Plots/Output/overcollateralization.png",
 # opinion by blackrock on overcollaterlaization during covid
 
 # large overcoll could also mean that companies already insure against massive rises by proactively posting  more margin!!!
-
-

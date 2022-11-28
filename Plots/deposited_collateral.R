@@ -46,10 +46,12 @@ collateral <- collateral |>
 collateral$SECURITY_TYPE <- fct_expand(collateral$SECURITY_TYPE, "CASH")
 collateral$SECURITY_TYPE[collateral$COLLATERAL_TYPE == "C"] <- "CASH"
 
-#reorder factors for plotting!!! (both plots must have same arrangement!)
-fct_reorder()(collateral$SECURITY_TYPE, levels = c("SOVEREIGN GOVERNMENT BONDS", "CASH", 
-""))
+# reorder factors for plotting!!! (both plots must have same arrangement!)
+fct_reorder(collateral$SECURITY_TYPE,
+    levels = c("SOVEREIGN GOVERNMENT BONDS", "CASH")
+)
 
+# plot graph
 out <-
     collateral |>
     filter(

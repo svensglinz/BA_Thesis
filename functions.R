@@ -1,5 +1,5 @@
 
-#' EWMA_Vol calculates the exponentially weighted volatility of a return 
+#' EWMA_Vol calculates the exponentially weighted volatility of a return
 #' vector with a burn-in period of n_day and a decay factor lambda
 #' @param returns numerical vector of a financial return series
 #' @param n_day amount of days considered for volatility calculation
@@ -30,13 +30,13 @@ ewma_vol <- function(returns, n_day, lambda) {
     return(out)
 }
 
-#' function which imports the master excel-sheet where all 
+#' function which imports the master excel-sheet where all
 #' essential information is stored and properly formats it for further use
 #' in the below functions
 #' @param path local path where excel sheet with returns is stored
-#' @return list which contains as sub-lists each individual sheet 
-#' of the excel file 
-#' @examples 
+#' @return list which contains as sub-lists each individual sheet
+#' of the excel file
+#' @examples
 #' path <- C:/Users/sveng/OneDrive/Dokumente/Schule/Studium/HSG/Thesis/BA_Thesis/Data
 #' master_file <- read_master(path)
 
@@ -60,21 +60,21 @@ read_master <- function(path) {
     return(out)
 }
 
-#' FUNCTION DESCRIPTION 
+#' FUNCTION DESCRIPTION
 #' @param product name of product (string) for which margin should be calculated. 
 #' Name must be in column INST of the masterfile
 #' @param start string in format "dd/mm/yyyy". Start period for which margin should 
 #' be calculated
-#' @param end string in format "dd/mm/yyyy". End period for which margin should 
+#' @param end string in format "dd/mm/yyyy". End period for which margin should
 #' be calculated
 #' @param args list with elements #short (T/F), #lambda (numeric), #MPOR (numeric),
 #' #... which are needed to calculate a Margin
-#' @return data frame with columns data & FHS_Margin which contains one margin 
+#' @return data frame with columns data & FHS_Margin which contains one margin
 #' calculation per date in between the specified date intervals
-#' @examples 
-#' #store master file with master function defined above 
+#' @examples
+#' #store master file with master function defined above
 #' master <- read_master(path)
-#' #specify arguments in args list 
+#' #specify arguments in args list
 #' args <- list(short = F, lambda = 0.975, MPOR = 3, n_day = 750, ...)
 #' #Calculate Margin for the Instrument "FESX"
 #' FHS_Margin <- calculate_FHS_margin("FESX", "01/01/2020", "01/05/2020", args)
@@ -179,7 +179,9 @@ calculate_fhs_margin <- function(product, start, end = NA,
                     )
                     # output which is upscaled FHS_Margin
                     out <- quantile(reval,
-                    ((1 - args$quantile) / 2), na.rm = T)[[1]] * args$factor # deleted / 2 behind
+                        ((1 - args$quantile) / 2),
+                        na.rm = TRUE
+                    )[[1]] * args$factor # deleted / 2 behind
                     return(out)
                 }
             )
@@ -244,7 +246,6 @@ calculate_sp_margin <- function(product, start, end = NA, args, abs = FALSE) {
         select(-LIQ_GROUP) |>
         left_join(returns, by = c("DATE")) |>
         na.omit()
-
 
     # nest data such that we can work on individual tibbles
     sp_var_df <- stress_dates |>
@@ -345,9 +346,8 @@ calculate_margin <- function(product, start, end = NA, args, steps = FALSE) {
 }
 #' Function Description
 #' @param margins
-#' @return 
-#' @examples 
-
+#' @return
+#' @examples
 summary_stats <- function(margin_df, start, end) {
     # load required packages
     require(tidyr)
@@ -401,13 +401,13 @@ summary_stats <- function(margin_df, start, end) {
 
     out <- tibble(
         type = c(
-            "N_breaches", "N_observations", "perc_breaches",
+            "n_breaches", "N_observations", "perc_breaches",
             "conf_level", "avg_shortfall",
             "max_shortfall", "costs", "peak_to_through",
             "max_1d", "max_5d", "max_30d"
         ),
         values = c(
-            N_breaches, N_observations, perc_breaches,
+            n_breaches, n_observations, perc_breaches,
             realized_conf_level, avg_shortfall, max_shortfall,
             costs, peak_to_through, max_1d, max_5d, max_30d
         )

@@ -8,7 +8,7 @@ library(latex2exp)
 # import written functions and store master sheet in memory
 source("functions.R")
 master <- read_master("Data/data_input.xlsx")
- 
+
 # add fonts for plotting
 font_add(
   family = "lmroman",
@@ -23,7 +23,6 @@ showtext_opts(dpi = 350)
 
 # function which calculates the 1d EWMA Volatility
 calculate_vola <- function(product, start, end, lambda, n_day, MPOR) {
-
   require(magrittr)
   require(zoo)
   require(dplyr)
@@ -155,7 +154,9 @@ out <-
   ) +
   scale_color_jama(breaks = c("FESX", "FSMI", "FGBX", "FGBL"))
 
+# save output
 ggsave("Plots/Output/ewma_1d.png",
+  plot = out,
   dpi = 350, height = 6.32,
   width = 7.86, units = "cm"
 )
