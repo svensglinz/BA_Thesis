@@ -3,6 +3,17 @@ library(tidyverse)
 library(scales)
 library(ggsci)
 
+# test script
+product <- "FESX"
+start = as.Date("2020-01-01")
+end = as.Date("2021-01-01")
+args = list(
+    MPOR = 3, factor = 1.37, quantile = 0.974,
+    lambda = 0.9593, n_day = 750,
+    liq_group = "PEQ01", short = FALSE
+)
+
+
 # import written functions and store master sheet in memory
 source("functions.R")
 master <- read_master("Data/data_input.xlsx")
@@ -14,17 +25,15 @@ end_date <- as.Date("2020-12-31")
 args_long <-
     list(
         MPOR = 3, factor = 1.37, quantile = 0.974,
-        lambda = 0.9593, n_day = 750, floor = FALSE,
-        absolute = FALSE, liq_group = "PEQ01",
-        short = FALSE, abs = TRUE
+        lambda = 0.9593, n_day = 750,
+        liq_group = "PEQ01", short = FALSE
     )
 
 args_short <-
     list(
         MPOR = 3, factor = 1.37, quantile = 0.974,
-        lambda = 0.9593, n_day = 750, floor = FALSE,
-        absolute = FALSE, liq_group = "PEQ01",
-        short = TRUE, abs = TRUE
+        lambda = 0.9593, n_day = 750,
+        liq_group = "PEQ01", short = TRUE
     )
 
 # calculate floored margin requirements
@@ -32,14 +41,14 @@ floored_long <-
     calculate_margin(
         product = "FESX",
         start = start_date, end = end_date,
-        args = args_long, steps = TRUE
+        args = args_long, steps = TRUE, abs = TRUE
     )
 
 floored_short <-
     calculate_margin(
         product = "FESX",
         start = start_date, end = end_date,
-        args = args_short, steps = TRUE
+        args = args_short, steps = TRUE, abs = TRUE
     )
 
 # calculate unfloored / baseline margin requirements
@@ -47,14 +56,14 @@ fhs_long <-
     calculate_fhs_margin(
         product = "FESX",
         start = start_date, end = end_date,
-        args = args_long, steps = TRUE
+        args = args_long, steps = TRUE, abs = TRUE
     )
 
 fhs_short <-
     calculate_fhs_margin(
         product = "FESX",
         start = start_date, end = end_date,
-        args = args_short, steps = TRUE
+        args = args_short, steps = TRUE, abs = TRUE
     )
 
 
@@ -90,8 +99,3 @@ fhs_long_summary <-
 
 fhs_short_summary <-
     summary_stats(fhs_short, start = start_date, end = end_date)
-
-plot(100)
-library(tidyverse)
-mtcars |> ggplot(aes(x = cyl, y = mpg)) +
-    geom_point()

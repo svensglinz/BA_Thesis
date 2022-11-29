@@ -40,20 +40,24 @@ out <-
     df |>
     ggplot(aes(x = FACT_DATE, y = IM_EUR / 10^9, fill = PRODUCT_GROUP)) +
     geom_area(position = "stack") +
-    scale_y_continuous(breaks = seq(from = 0, to = 80, by = 20),
-    expand = expansion(mult = c(.01, .05))) +
-    scale_x_date(breaks = seq.Date(
-        from = start_date,
-        to = end_date, by = "month"
-    ), labels = scales::label_date(format = "%b"),
-    expand = expansion(mult = c(.005, .005))) +
-labs(
-    title = "Initial Margin per Asset Class (in Bio EUR)",
-    x = NULL,
-    y = NULL,
-    fill = NULL,
-    caption = "Own Depiction | Source: Eurex Clearing AG"
-) +
+    scale_y_continuous(
+        breaks = seq(from = 0, to = 80, by = 20),
+        expand = expansion(mult = c(.01, .05))
+    ) +
+    scale_x_date(
+        breaks = seq.Date(
+            from = start_date,
+            to = end_date, by = "month"
+        ), labels = scales::label_date(format = "%b"),
+        expand = expansion(mult = c(.005, .005))
+    ) +
+    labs(
+        title = "Initial Margin per Asset Class (in Bio EUR)",
+        x = NULL,
+        y = NULL,
+        fill = NULL,
+        caption = "Own Depiction | Source: Eurex Clearing AG"
+    ) +
     theme(
         text = element_text(family = "lmroman"),
         plot.title = element_text(size = 10, face = "bold"),

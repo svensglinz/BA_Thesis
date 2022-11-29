@@ -42,7 +42,7 @@ args_short <-
 floored_short <- calculate_margin(
   product = "FESX", start = start_date,
   end = end_date, args = args_short,
-  steps = FALSE
+  steps = FALSE, abs = TRUE
 ) |>
   mutate(
     TYPE = "FLOORED",
@@ -52,7 +52,7 @@ floored_short <- calculate_margin(
 floored_long <- calculate_margin(
   product = "FESX", start = start_date,
   end = end_date, args = args_long,
-  steps = FALSE
+  steps = FALSE, abs = TRUE
 ) |>
   mutate(
     TYPE = "FLOORED",
@@ -63,7 +63,7 @@ floored_long <- calculate_margin(
 fhs_long <- calculate_fhs_margin(
   product = "FESX", start = start_date,
   end = end_date, args = args_long,
-  steps = FALSE
+  steps = FALSE, abs = TRUE
 ) |>
   mutate(
     TYPE = "FHS",
@@ -74,7 +74,7 @@ fhs_long <- calculate_fhs_margin(
 fhs_short <- calculate_fhs_margin(
   product = "FESX", start = start_date,
   end = end_date, args = args_short,
-  steps = FALSE
+  steps = FALSE, abs = TRUE
 ) |>
   mutate(
     TYPE = "FHS",
@@ -85,7 +85,7 @@ fhs_short <- calculate_fhs_margin(
 joined <- floored_long |>
   bind_rows(floored_short, fhs_long, fhs_short)
 
-# assemble plot
+# assemble plot (error floored = FHS before march!!!)
 out <-
   joined |>
   ggplot(aes(
@@ -99,8 +99,9 @@ out <-
     linetype = "dashed", size = .4
   ) +
   scale_y_continuous(
-    breaks = seq(from = -.2, to = .2, by = .05),
-    labels = scales::label_percent()
+    breaks = seq(
+      from = -6, to = 4, by = 1
+    )
   ) +
   scale_x_date(
     breaks = seq.Date(
@@ -111,7 +112,7 @@ out <-
     expand = expansion(mult = .02)
   ) +
   labs(
-    title = "Floored Margin FESX",
+    title = "Initial Margin FESX (EUR per Contract)",
     color = NULL,
     x = NULL,
     y = NULL,
@@ -136,7 +137,7 @@ out <-
 
 # save output
 ggsave("Plots/Output/baseline_vs_stress.png",
-    plot = out,
-    device = "png", dpi = 350, height = 6.32,
-    width = 7.86, units = "cm"
+  plot = out,
+  device = "png", dpi = 350, height = 6.32,
+  width = 7.86, units = "cm"
 )
