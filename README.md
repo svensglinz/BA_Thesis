@@ -64,6 +64,6 @@ must include steps = TRUE!
 
 ### :rocket: Output Examples
 
-|   |   |
-:-------------------------:|:-------------------------:
-![](Plots/Output/IMC_March.png)  |  ![](Plots/Output/IMC_March.png) 
+|   |   | |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](Plots/Output/IMC_March.png)  |  ![](Plots/Output/baseline_vs_stress.png) |  ![](Plots/Output/ewma_1d.png) 
