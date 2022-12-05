@@ -1,6 +1,12 @@
 # MARGIN CALCULATIONS
 
-This repository hosts all raw-data and code used to produce the models, graphs and calculations in my Bachelor Thesis **Margin Procyclicality during Covid 19 - Drivers, Impact and Solutions**
+---
+
+This repository hosts all raw-data and code used to produce the models, graphs and calculations in my Bachelor Thesis **Margin Procyclicality during Covid 19 - Drivers, 
+Impact and Solutions**
+
+---
+
 
 ### :open_file_folder: Description of Files
 
