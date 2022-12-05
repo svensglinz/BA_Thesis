@@ -2,7 +2,7 @@
 
 This repository hosts all raw-data and code used to produce the models, graphs and calculations in my Bachelor Thesis **Margin Procyclicality during Covid 19 - Drivers, Impact and Solutions**
 
-### Description of Files
+### :open_file_folder: Description of Files
 
 - All functions needed to calculate Margins are contained in the file :link: ![*functions*](*functions*)
 - The files for each plot are located in the :link: ![*Plots*](plots) folder
@@ -10,7 +10,7 @@ This repository hosts all raw-data and code used to produce the models, graphs a
 - All procyclicality measures as reported in XXX are located in the file :link: ![*procyclicality_calculations.R*](procyclicality_calculations.R)
 - All other source data used can be found in :link: ![*Data*](data)
 
-### Margin Calculation
+### :bar_chart: Margin Calculation
 
 :one: All necessary arguments / static parameters which are needed as inputs for the Margin model must be stored in a list.
 
@@ -62,4 +62,8 @@ end = end_date, args = params)
 must include steps = TRUE!
 ```
 
-:chart_with_upwards_trend: :rocket: Output Examples
+### :rocket: Output Examples
+
+|   |   |
+:-------------------------:|:-------------------------:
+![](Plots/Output/IMC_March.png)  |  ![](Plots/Output/IMC_March.png) 
