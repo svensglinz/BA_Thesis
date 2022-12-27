@@ -9,7 +9,7 @@ Impact and Solutions**
 
 ### Description of Files
 
-- All functions needed to calculate Margins are contained in the file :link: ![*functions*](*functions*)
+- All functions needed to calculate Margins are contained in the file :link: ![*functions*](functions.R)
 - The files for each plot are located in the :link: ![*Plots*](plots) folder
 - All plots as .png files are located in  :link: ![*Plots/Output](plots/output)*
 - All procyclicality measures as reported in XXX are located in the file :link: ![*procyclicality_calculations.R*](procyclicality_calculations.R)
