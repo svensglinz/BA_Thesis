@@ -1,7 +1,7 @@
 # load libraries
 library(tidyverse)
-library(ggExtra)
 library(showtext)
+library(patchwork)
 
 # add fonts for plotting
 font_add(

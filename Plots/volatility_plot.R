@@ -109,12 +109,20 @@ out <-
   combined |>
   ggplot(aes(x = DATE, y = VOLA, color = SECURITY)) +
   geom_line() +
+  geom_point(
+    data = combined |>
+      group_by(SECURITY) |>
+      filter(row_number() %% 15 == 0),
+    aes(shape = SECURITY)
+  ) +
   labs(
     title = "1d EWMA weighted Volatility Returns",
     subtitle = TeX("$\\lambda$ = .95, burn-in = 750", italic = TRUE),
     y = NULL,
     x = NULL,
     color = NULL,
+    shape = NULL,
+    linetype = NULL,
     caption = "Own Depiction | Data Source: Eurex Clearing AG"
   ) +
   scale_y_continuous(
@@ -140,23 +148,26 @@ out <-
     ),
     panel.background = element_rect(color = "black", fill = "white"),
     axis.text.x = element_text(angle = 45),
-    plot.caption = element_text(size = 8),
+    plot.caption = element_text(
+      size = 8,
+      margin = margin(t = -.1, l = 0, r = 0, b = 0, "cm")
+    ),
     legend.position = "bottom",
     plot.title = element_text(size = 10, face = "bold"),
     plot.subtitle = element_text(size = 7, face = "italic", family = "sans"),
     legend.text = element_text(size = 7),
     axis.text = element_text(size = 8),
-    legend.key.size = unit(.2, "cm"),
-    legend.box.spacing = unit(0, "pt"),
+    legend.box.spacing = unit(-.3, "cm"),
     legend.key = element_rect(fill = "white", color = "white"),
     axis.ticks.x = element_line(color = "black"),
-    plot.background = element_rect(fill = "white", color = "white")
+    plot.background = element_rect(fill = "white", color = "white"),
+    plot.margin = margin(0, 0, 0, 0, unit = "cm")
   ) +
-  scale_color_jama(breaks = c("FESX", "FSMI", "FGBX", "FGBL"))
+  scale_color_grey(breaks = c("FESX", "FSMI", "FGBX", "FGBL")) +
+  scale_shape(breaks = c("FESX", "FSMI", "FGBX", "FGBL"))
 
 # save output
 ggsave("Plots/Output/ewma_1d.png",
   plot = out,
-  dpi = 350, height = 6.32,
-  width = 7.86, units = "cm"
+  dpi = 350, width = 7.86, height = 6.33, unit = "cm"
 )

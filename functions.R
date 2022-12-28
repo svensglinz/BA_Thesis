@@ -303,19 +303,17 @@ calculate_sp_margin <- function(product, start, end,
         ungroup()
 
     # calculate mean var per validity level over all buckets
-    sp_var_df |>
+    sp_var_df <- sp_var_df |>
         group_by(VALID_FROM, VALID_TO) |>
-        summarize(MARGIN = abs(mean((VAR))))
+        summarize(MARGIN = abs(mean((MARGIN))))
 
     # convert to data.table to use non-equi join functionality of data.table
-    sp_var_df <- as.data.table(sp_var_df)
-    returns <- as.data.table(returns)
+    sp_var_df <- data.table(sp_var_df)
+    returns <- data.table(returns)
 
-    joined <- returns[sp_var_df, on = .(DATE >= VALID_FROM, DATE < VALID_TO)]
-
-    # convert back to tibble
-    joined <- as_tibble(joined) |>
-        select(-DATE.1)
+    joined <- sp_var_df[returns, on = .(VALID_FROM <= DATE, VALID_TO > DATE)] |>
+        rename(DATE = VALID_FROM) |>
+        select(- VALID_TO)
 
     # conditional for absulute margin
     if (abs) {

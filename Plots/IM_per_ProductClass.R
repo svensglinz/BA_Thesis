@@ -3,6 +3,7 @@ library(tidyverse)
 library(scales)
 library(ggsci)
 library(showtext)
+library(ggpattern)
 
 # add fonts for plotting
 font_add(
@@ -19,7 +20,7 @@ showtext_opts(dpi = 350)
 # define parameters
 start_date <- as.Date("2020-01-01")
 end_date <- as.Date("2020-12-31")
-
+breaks <- c("EQUITY DERIVATIVES", "FI DERIVATIVES", "OTC IRS", "OTHER")
 # load data
 df <- read_csv("Data/Eurex_Data/IM per Product Class.csv",
     col_types = cols(FACT_DATE = col_date(format = "%d/%m/%Y"))
@@ -68,16 +69,18 @@ out <-
         plot.background = element_rect(fill = "white", color = "white"),
         panel.background = element_rect(fill = "white", color = "black"),
         axis.ticks = element_line(color = "black"),
-        plot.caption = element_text(size = 7)
+        plot.caption = element_text(size = 8),
+        plot.margin = margin(0, 0, 0, 0)
     ) +
-    scale_fill_jama(labels = c(
-        "Equity Derivatives",
-        "FI Derivatives", "OTC IRS", "Other"
-    ))
+    scale_fill_grey(
+        breaks = c("EQUITY DERIVATIVES", "FIXED INCOME DERIVATIVES", "OTC IRS", "OTHER"),
+        labels = c("Equity Derivatives", "FI Derivatives", "OTC IRS", "Other")
+    )
+
 
 # save plot
 ggsave("Plots/Output/IM_per_asset.png",
     plot = out,
-    device = "png", dpi = 350, height = 8.5,
-    width = 15.9, units = "cm"
+    device = "png", dpi = 350, height = 6.6,
+    width = 10.9, units = "cm"
 )
