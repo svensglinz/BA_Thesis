@@ -32,43 +32,49 @@ grouped <- imc |>
   summarize(COUNT = sum(N_CALLS))
 
 imc <- imc |>
-  left_join(grouped, by = c("FACT_DATE"))
+  left_join(grouped, by = c("FACT_DATE")) |>
+  mutate(DAY = as.factor(format(FACT_DATE, "%d")))
 
 # plot graph
 out <-
   imc |>
   filter(between(FACT_DATE, start_date, end_date)) |>
-  mutate(FACT_DATE = as.factor(format(FACT_DATE, "%d"))) |>
-  ggplot(aes(x = FACT_DATE, y = N_CALLS, fill = TYPE)) +
+  ggplot(aes(x = DAY, y = N_CALLS, fill = TYPE)) +
   geom_bar(stat = "identity", position = "stack") +
   scale_y_continuous(
-    breaks = seq(from = 0, to = 90, by = 10),
+    breaks = seq(from = 0, to = 90, by = 20),
     expand = expansion(mult = c(.01, .07))
   ) +
+  scale_x_discrete(breaks = c("02", "04", "06", "10", "12", "16", "18", "20", "24", "26", "30")) +
   labs(
-    title = "Margin Calls per Trigger Type (March 2020)",
+    title = "Number of IMC (March 2020)",
     x = NULL,
-    y = "Number of Calls",
+    y = NULL,
     fill = NULL,
     caption = "Own Depiction | Data Source: Eurex Clearing AG"
   ) +
   theme(
     text = element_text(family = "lmroman"),
     plot.title = element_text(size = 10, face = "bold"),
-    plot.caption = element_text(size = 8),
+    plot.caption = element_text(size = 8, margin = margin(t = -.1, b = 0, r = 0, l = 0)),
     panel.grid = element_blank(),
     panel.background = element_rect(fill = "white", color = "black"),
     legend.position = "bottom",
     axis.text = element_text(size = 8),
     axis.title = element_text(size = 8),
+    legend.text = element_text(size = 8),
     legend.key.size = unit(.3, "cm"),
-    plot.subtitle = element_text(size = 8, face = "italic"),
-    legend.box.spacing = unit(0, "pt"),
+    legend.box.spacing = unit(5, "pt"),
+    plot.margin = margin(0, 0, 0, 0),
+    legend.margin = margin(t = 0, b = .2, l = 0, r = 0, unit = "cm")
   ) +
-  scale_fill_jama(labels = c("Initial Margin", "Variation Margin"))
+  scale_fill_grey(
+    start = .7, end = .3,
+    labels = c("Initial Margin", "Variation Margin")
+  )
 
 # save output
 ggsave("Plots/Output/IMC_March.png",
   plot = out,
-  dpi = 350, width = 9.9, height = 6.6, units = "cm"
+  dpi = 350, width = 7.6, height = 6.2, units = "cm"
 )

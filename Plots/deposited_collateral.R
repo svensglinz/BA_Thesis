@@ -6,11 +6,11 @@ library(showtext)
 
 # add fonts for plotting
 font_add(
-  family = "lmroman",
-  regular = "Fonts/lmroman10_regular.ttf",
-  bold = "Fonts/lmroman10_bold.ttf",
-  italic = "Fonts/lmroman10_italic.ttf",
-  bolditalic = "Fonts/lmroman10_bolditalic.ttf"
+    family = "lmroman",
+    regular = "Fonts/lmroman10_regular.ttf",
+    bold = "Fonts/lmroman10_bold.ttf",
+    italic = "Fonts/lmroman10_italic.ttf",
+    bolditalic = "Fonts/lmroman10_bolditalic.ttf"
 )
 
 showtext_auto(enable = TRUE)
@@ -46,10 +46,14 @@ collateral <- collateral |>
 collateral$SECURITY_TYPE <- fct_expand(collateral$SECURITY_TYPE, "CASH")
 collateral$SECURITY_TYPE[collateral$COLLATERAL_TYPE == "C"] <- "CASH"
 
-# reorder factors for plotting!!! (both plots must have same arrangement!)
-fct_reorder(collateral$SECURITY_TYPE,
-    levels = c("SOVEREIGN GOVERNMENT BONDS", "CASH")
-)
+collateral$SECURITY_TYPE <-
+    factor(
+        collateral$SECURITY_TYPE,
+        levels = c(
+            "CASH", "SOVEREIGN GOVERNMENT BONDS", "BANK BONDS",
+            "STATE/MUNICIPAL BONDS", "STATE AGENCIES", "CORPORATE BONDS", "STOCKS"
+        )
+    )
 
 # plot graph
 out <-
@@ -65,7 +69,7 @@ out <-
     geom_line() +
     geom_vline(
         xintercept = line_date,
-        color = "red", size = 2, alpha = .2
+        color = "#838383", size = 2, alpha = .2
     ) +
     scale_y_continuous(labels = scales::percent_format()) +
     scale_x_date(
@@ -74,7 +78,7 @@ out <-
     ) +
     labs(
         title = "Total Share of Deposited Collateral per Security Type",
-        subtitle = "red line = 20th March 2020",
+        subtitle = "grey line = 20th March 2020",
         y = NULL,
         x = NULL,
         color = NULL,
@@ -82,7 +86,7 @@ out <-
     ) +
     theme(
         text = element_text(family = "lmroman"),
-        plot.caption = element_text(size = 7),
+        plot.caption = element_text(size = 8),
         panel.grid.minor = element_blank(),
         panel.grid.major.x = element_blank(),
         plot.title = element_text(size = 10, face = "bold"),
@@ -92,7 +96,8 @@ out <-
         panel.background = element_rect(fill = "white", color = "white"),
         strip.text = element_text(size = 6),
         axis.ticks.x = element_line(color = "black"),
-        plot.background = element_rect(fill = "white", color = "white")
+        plot.background = element_rect(fill = "white", color = "white"),
+        plot.margin = margin(0, 0, 0, 0)
     ) +
     facet_wrap(~SECURITY_TYPE, scales = "free_y")
 

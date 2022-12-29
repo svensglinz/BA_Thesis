@@ -6,11 +6,11 @@ library(showtext)
 
 # add fonts for plotting
 font_add(
-  family = "lmroman",
-  regular = "Fonts/lmroman10_regular.ttf",
-  bold = "Fonts/lmroman10_bold.ttf",
-  italic = "Fonts/lmroman10_italic.ttf",
-  bolditalic = "Fonts/lmroman10_bolditalic.ttf"
+    family = "lmroman",
+    regular = "Fonts/lmroman10_regular.ttf",
+    bold = "Fonts/lmroman10_bold.ttf",
+    italic = "Fonts/lmroman10_italic.ttf",
+    bolditalic = "Fonts/lmroman10_bolditalic.ttf"
 )
 
 showtext_auto(enable = TRUE)
@@ -44,18 +44,27 @@ securities <-
     ) |>
     summarize(AVG_HAIRCUT = mean(SECURITY_EVALUATION_FACTOR, na.rm = TRUE))
 
+securities$SECURITY_TYPE <-
+    factor(
+        securities$SECURITY_TYPE,
+        levels = c(
+            "SOVEREIGN GOVERNMENT BONDS", "BANK BONDS",
+            "STATE/MUNICIPAL BONDS", "STATE AGENCIES", "CORPORATE BONDS", "STOCKS"
+        )
+    )
 # generate plot
 out <-
     securities |>
     ggplot(aes(x = FACT_DATE, y = AVG_HAIRCUT)) +
     geom_vline(
         xintercept = line_date,
-        color = "red", size = 2, alpha = .2
+        color = "#838383", size = 2, alpha = .2
     ) +
     geom_line() +
-        scale_x_date(
+    scale_x_date(
         breaks = seq.Date(from = start_date, to = end_date, by = "2 month"),
-        labels = scales::label_date(format = "%b")) +
+        labels = scales::label_date(format = "%b")
+    ) +
     theme(
         text = element_text(family = "lmroman"),
         panel.grid.minor = element_blank(),
@@ -72,12 +81,13 @@ out <-
     ) +
     labs(
         title = "Evolution of Collateral Haircuts",
-        subtitle = "red line = 20th March 2020",
+        subtitle = "grey line = 20th March 2020",
         caption = "Own Depiction | Data Source: Eurex Clearing AG",
         x = NULL,
         y = NULL
     ) +
     facet_wrap(~SECURITY_TYPE, scales = "free_y")
+
 
 # save output
 ggsave("Plots/Output/collateral_haircut.png",
