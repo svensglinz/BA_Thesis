@@ -26,20 +26,12 @@ imc <-
     col_types = cols(FACT_DATE = col_date(format = "%d/%m/%Y"))
   )
 
-# modify and clean data
-grouped <- imc |>
-  group_by(FACT_DATE) |>
-  summarize(COUNT = sum(N_CALLS))
-
-imc <- imc |>
-  left_join(grouped, by = c("FACT_DATE")) |>
-  mutate(DAY = as.factor(format(FACT_DATE, "%d")))
-
 # plot graph
 out <-
   imc |>
+  mutate(DAY = day(FACT_DATE)) |>
   filter(between(FACT_DATE, start_date, end_date)) |>
-  ggplot(aes(x = DAY, y = N_CALLS, fill = TYPE)) +
+  ggplot(aes(x = as.factor(DAY), y = N_CALLS, fill = TYPE)) +
   geom_bar(stat = "identity", position = "stack") +
   scale_y_continuous(
     breaks = seq(from = 0, to = 90, by = 20),

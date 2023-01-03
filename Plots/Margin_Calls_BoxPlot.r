@@ -27,16 +27,12 @@ imc <-
     )
 
 # modify and clean data
-grouped <- imc |>
+out <- imc |>
     filter(between(FACT_DATE, start_date, end_date)) |>
-    group_by(FACT_DATE, TYPE) |>
-    summarize(COUNT = sum(N_CALLS)) |>
-    mutate(MONTH = format(FACT_DATE, "%b"))
-
-out <- grouped |>
+    mutate(MONTH = format(FACT_DATE, "%b")) |>
     ggplot(
         aes(
-            x = reorder(MONTH, FACT_DATE), y = COUNT,
+            x = reorder(MONTH, FACT_DATE), y = VOLUME / 10^9,
             group = interaction(MONTH, TYPE), fill = TYPE
         )
     ) +
@@ -44,11 +40,11 @@ out <- grouped |>
     labs(
         x = NULL,
         y = NULL,
-        title = "Number of Daily IMC (2020)",
+        title = "Volume of Daily IMC (2020)",
         fill = NULL,
         caption = "Own Depiction | Source: Eurex Clearing AG"
     ) +
-    scale_y_continuous(breaks = seq(0, 80, 20)) +
+    scale_y_continuous(breaks = seq(0, 10, 2)) +
     theme_bw() +
     theme(
         text = element_text(family = "lmroman"),
@@ -62,10 +58,38 @@ out <- grouped |>
         plot.margin = margin(0, 0, 0, 0),
         legend.box.spacing = unit(10, "pt")
     ) +
-    scale_fill_grey(start = .8, end = .5)
+    scale_fill_grey(
+        start = .8, end = .5,
+        labels = c("Initial Margin", "Variation Margin")
+    )
 
 # save output
 ggsave("Plots/Output/IMC_boxplot.png",
-    plot = out, width = 8.33, height = 5.89,
+    plot = out, width = 8.33, height = 6.14,
     dpi = 350, unit = "cm"
 )
+
+
+
+# testing table plotting features!
+update.packages()
+
+summarize(mtcars, hello = sum(disp), .by = mpg)
+
+a <- mtcars
+
+mtcars |> left_join(a, join_by(mpg))
+
+
+mtcars |>
+    head() |>
+    gt() |>
+    tab_style(style = cell_text(font = google_font("Fira Mono")))
+
+data.frame(x = c(1.2345, 12.345, 123.45, 1234.5, 12345)) %>%
+    gt() %>%
+    tab_style(
+        # MUST USE A MONO-SPACED FONT
+        style = cell_text(font = "lmroman"),
+        locations = cells_body(columns = x)
+    )

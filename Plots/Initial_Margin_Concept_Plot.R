@@ -16,7 +16,7 @@ showtext_auto(enable = TRUE)
 showtext_opts(dpi = 350)
 
 # set seed for replicability
-set.seed(4)
+set.seed(7)
 
 # create start path (identical for all paths)
 start <- c(100, rnorm(n = 99, mean = 0, sd = 1))
@@ -49,12 +49,12 @@ graph <-
     geom_segment(aes(
         y = paths$value[paths$index == 100][1], x = 100,
         yend = paths$value[paths$index == 100][1], xend = 400
-    ), color = "red") +
+    ), color = "#838383") +
     geom_vline(xintercept = 200, linetype = 2) +
     geom_vline(xintercept = 300, linetype = 2) +
     labs(
-        x = "Time",
-        y = "Value",
+        x = NULL,
+        y = NULL,
         title = "Concept of Initial Margin",
         caption = "Own Depiction"
     ) +

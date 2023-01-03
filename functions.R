@@ -248,7 +248,6 @@ calculate_sp_margin <- function(product, start, end,
     # load required packages
     require(zoo)
     require(tidyr)
-    require(magrittr)
     require(data.table)
 
     # retrieve returns of product from masterfile
@@ -305,7 +304,8 @@ calculate_sp_margin <- function(product, start, end,
     # calculate mean var per validity level over all buckets
     sp_var_df <- sp_var_df |>
         group_by(VALID_FROM, VALID_TO) |>
-        summarize(MARGIN = abs(mean((MARGIN))))
+        summarize(MARGIN = abs(mean((MARGIN)))) |>
+        ungroup()
 
     # convert to data.table to use non-equi join functionality of data.table
     sp_var_df <- data.table(sp_var_df)
@@ -340,7 +340,6 @@ calculate_sp_margin <- function(product, start, end,
 calculate_margin <- function(product, start, end = NA, args,
                              steps = FALSE, abs = FALSE) {
     # load required packages
-    require(magrittr)
     require(tidyr)
 
     fhs <- calculate_fhs_margin(
@@ -376,7 +375,6 @@ calculate_margin <- function(product, start, end = NA, args,
 summary_stats <- function(margin_df, start, end) {
     # load required packages
     require(tidyr)
-    require(magrittr)
 
     margin_df <- margin_df |>
         filter(between(DATE, start, end)) |>
@@ -439,4 +437,41 @@ summary_stats <- function(margin_df, start, end) {
     )
 
     return(out)
+}
+
+#' result_only == will only return true/ false whether the test is passed or not
+#' otherwise the entire data frame with pass / fail for each sub-window is returned!!!
+#'
+
+# Kupiec Proportion of Failure Stuff
+kupiec_test <- function(margin_df, window, model_conf_level,test_conf_level) {
+
+    # calculate vector for rolling kupiec_test statistics
+    test <- rollapply(
+        fill = NA,
+        data = margin_df,
+        width = window,
+        by.column = FALSE,
+        align = "left",
+        FUN = function(x) {
+            n_breaches <- sum(as.numeric(x[, "MARGIN"]) <
+                as.numeric(x[, "RET_MPOR"]) * -1, na.rm = TRUE)
+            perc_breaches <- (n_breaches / window)
+
+            # Calculate Kupiec Proportion of Failure statistic
+            factor_1 <- ((1 - perc_breaches) /
+                (model_conf_level))^(window - n_breaches)
+            factor_2 <- (perc_breaches / (1 - model_conf_level))^n_breaches
+            result <- ifelse(perc_breaches == 0, 0, 2 * log(factor_1 * factor_2))
+
+        chisq_statistic <- qchisq(test_conf_level, 1)
+        out <- ifelse((
+            result < chisq_statistic | perc_breaches < (1 - model_conf_level)),
+            TRUE, FALSE
+        )
+        return(out)
+        }
+    )
+
+    out <- all(test, na.rm = TRUE)
 }

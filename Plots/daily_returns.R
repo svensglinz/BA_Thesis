@@ -9,11 +9,12 @@ source("functions.R")
 master <- read_master("Data/data_input.xlsx")
 
 # add fonts for plotting
+# add fonts for plotting
 font_add(
   family = "lmroman",
-  regular = "Fonts/lmroman12-regular.otf",
-  bold = "Fonts/lmroman12-bold.otf",
-  italic = "Fonts/lmroman12-italic.otf",
+  regular = "Fonts/lmroman10_regular.ttf",
+  bold = "Fonts/lmroman10_bold.ttf",
+  italic = "Fonts/lmroman10_italic.ttf",
   bolditalic = "Fonts/lmroman10_bolditalic.ttf"
 )
 
@@ -55,9 +56,10 @@ out <-
   theme(
     text = element_text(family = "lmroman"),
     plot.title = element_text(size = 10, face = "bold"),
-    plot.caption = element_text(size = 7),
+    plot.caption = element_text(size = 8),
     axis.text = element_text(size = 8),
-    plot.subtitle = element_text(size = 8, face = "italic"),
+    plot.margin = margin(0, 0, 0, 0),
+    plot.subtitle = element_text(size = 7, face = "italic"),
     panel.grid.minor = element_blank(),
     panel.grid.major.x = element_blank(),
     panel.grid.major.y = element_line(
