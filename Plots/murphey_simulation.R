@@ -26,7 +26,6 @@ end_date <- as.Date("2021-01-01")
 start_procyclicality <- as.Date("2020-01-01")
 end_procyclicality <- as.Date("2020-12-31")
 
-
 # parameters for the Kupiec Test of Failure Function
 window <- 750
 model_conf_level <- .99
@@ -42,15 +41,9 @@ args_long_FESX <-
   )
 
 # define lambdas to loop over
-lambda_loop <- seq(0.9, 0.999, by = 0.01)
-
-# pre-assign vectors
-lambda <- vector("double", length(lambda_loop))
-procyclicality <- vector("double", length(lambda_loop))
-costs <- vector("double", length(lambda_loop))
-max_shortfall <- vector("double", length(lambda_loop))
-n_breaches <- vector("double", length(lambda_loop))
+lambda_loop <- seq(0.9, 0.995, by = 0.005)
 count <- 1
+measures <- tibble(NULL)
 
 for (i in lambda_loop) {
   # assign lambda to the args list
@@ -69,27 +62,22 @@ for (i in lambda_loop) {
     test_conf_level = test_conf_level
   )
 
-  # filter out observations in 2020 only for procyclicality measure
-  # calculations
-  FESX_Margin <- FESX_Margin |>
-    filter(between(DATE, start_procyclicality, end_procyclicality))
-
-  measures <-
-    summary_stats(FESX_Margin, start = start_date, end = end_date)
-
-  lambda[count] <- i
-  costs[count] <- measures |>
-    filter(type == "costs") |>
-    pull(values)
-  procyclicality[count] <- measures |>
-    filter(type == "max_30d") |>
-    pull(values)
-  max_shortfall[count] <- measures |>
-    filter(type == "max_shortfall") |>
-    pull(values)
-  n_breaches[count] <- measures |>
+  temp <- summary_stats(FESX_Margin, start = start_date, end = end_date)
+  n_breaches_2020 <- summary_stats(FESX_Margin, start = as.Date("2020-01-01"), end = as.Date("2020-12-31"))
+  n_breaches_2020 <- temp_2020 |>
     filter(type == "n_breaches") |>
-    pull(values)
+    mutate(type = "n_breaches_2020")
+  temp <- bind_rows(temp, n_breaches_2020)
+
+  temp <- temp |>
+    mutate(
+      lambda = i,
+      KPF_result = KPF_result
+    )
+
+
+  measures <- measures |>
+    bind_rows(temp)
 
   print(
     paste(
@@ -101,29 +89,40 @@ for (i in lambda_loop) {
   count <- count + 1
 }
 
+# store results in data frame
 results <- tibble(
   lambda = lambda,
-  procyclicality = procyclicality,
+  procyclicality = procyclicality_30d,
   costs = costs,
   max_shortfall = max_shortfall,
   KPF_result = KPF_result,
-  n_breaches = n_breaches
+  conf_level = conf_level
 )
 
-# do two separate graphs (average shortfall (including breaches) and then average costs!!!)
-
-# assemble plot
-results |>
+unmitigated <- results |>
   filter(KPF_result) |>
-  ggplot(aes(y = procyclicality)) +
-  geom_point(aes(x = costs, color = lambda, size = "Average Costs")) +
-  geom_line(aes(x = max_shortfall * -1, linetype = "Max Shortfall")) +
+  ggplot(aes(y = procyclicality_30d)) +
+  geom_point(aes(x = round(costs * 100, 1), color = lambda)) +
   scale_color_gradientn(
     colors = c("white", "grey", "darkgrey", "black"),
     breaks = c(.9, .95, .99)
   ) +
-  scale_x_continuous(labels = scales::label_percent()) +
-  # ,sec.axis = sec_axis(trans = \(x) x)) + # not needed on this scale
+  scale_x_continuous(
+    breaks = seq(6.7, 9.2, by = .2)
+  ) +
+  labs(
+    title = "30-day Procyclicality - FHS Model",
+    x = "Avg. Costs (%)",
+    y = NULL,
+    color = expression(lambda)
+  ) +
+  guides(
+    color = guide_colorbar(
+      barheight = .5,
+      title.position = "left",
+      title.vjust = 1
+    )
+  ) +
   theme(
     text = element_text(family = "lmroman"),
     panel.grid.major = element_blank(),
@@ -132,28 +131,67 @@ results |>
       linetype = 2,
       linewidth = 0.5
     ),
+    legend.text = element_text(size = 7, hjust = 1),
+    legend.title = element_text(family = "sans", size = 7),
     panel.background = element_rect(color = "black", fill = "white"),
     legend.position = "bottom",
+    legend.box.spacing = unit(0, "cm"),
     plot.title = element_text(size = 10, face = "bold"),
     legend.key = element_rect(fill = "white"),
+    axis.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    plot.margin = margin(0, 0, 0, 0)
+  )
+
+ggsave(
+  "Plots/Output/unmitigated.png", unmitigated,
+  width = 6.48, height = 5.45, unit = "cm"
+)
+
+alt_risk_unmitigated <- measures |>
+  pivot_wider(names_from = type, values_from = values) |>
+  mutate(
+    max_shortfall = max_shortfall * -100,
+    avg_shortfall = avg_shortfall * -100,
+    n_breaches = n_breaches / 3,
+    n_breaches_2020 = n_breaches / 3
+  ) |>
+  pivot_longer(!c(lambda, KPF_result), names_to = "type", values_to = "values") |>
+  filter(KPF_result) |>
+  filter(type %in% c("max_shortfall", "avg_shortfall", "n_breaches", "n_breaches_2020")) |>
+  ggplot(aes(x = lambda, y = values, linetype = type)) +
+  # geom_point(aes(shape = type)) +
+  geom_line() +
+  scale_y_continuous(
+    breaks = seq(1, 20, 1),
+    sec.axis = sec_axis(trans = \(x) x * 3)
   ) +
   labs(
-    title = "30-day Procyclicality - FHS Model",
-    x = "Average Costs / Max Shortfall",
-    y = "30-day Procylicality",
-    color = "lambda"
+    y = "Max Shortfall (%) / N_Breaches",
+    title = "Shortfall & Coverage",
+    linetype = NULL,
+    caption = "unmitigated"
   ) +
-  guides(
-    color = guide_colorbar(
-      barwidth = 10,
-      barheight = .5,
-      title.position = "top"
-    ),
-    linetype = guide_legend(
-      title.position = "top",
-      title = ""
-    )
+  theme(
+    text = element_text(family = "lmroman"),
+    panel.grid.major = element_blank(),
+    legend.text = element_text(size = 7, hjust = 1),
+    plot.caption = element_text(size = 7),
+    legend.title = element_text(family = "sans", size = 7),
+    panel.background = element_rect(color = "black", fill = "white"),
+    legend.position = "bottom",
+    legend.box.spacing = unit(0, "cm"),
+    plot.title = element_text(size = 10, face = "bold"),
+    legend.key = element_rect(fill = "white"),
+    axis.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    plot.margin = margin(0, 0, 0, 0)
   )
+
+ggsave(
+  "Plots/Output/risks_unmitigated.png", alt_risk_unmitigated,
+  width = 8, height = 8, unit = "cm"
+)
 
 # for n breaches --> report in paper
 # where the limit is for how many breaches
@@ -166,156 +204,17 @@ results |>
 # that the returns are truly lagged
 # (in the stats calculation)!!!!!!!!
 
+# the fact that the less reactive models are better at capturing
+# breaches means that those in the event of a sharp drop cannot be captured anyways!!!
 
-# same for floored version!
-args_long_FESX <-
-  list(
-    MPOR = 3, factor = 1.37, quantile = 0.974,
-    lambda = NULL, n_day = 750, floor = FALSE,
-    absolute = FALSE, liq_group = "PEQ01",
-    short = FALSE
-  )
 
-# define lambdas to loop over
-lambda_loop <- seq(0.9, 0.999, by = 0.01)
 
-# pre-assign vectors
-lambda <- vector("double", length(lambda_loop))
-procyclicality_30d <- vector("double", length(lambda_loop))
-procyclicality_5d <- vector("double", length(lambda_loop))
-costs <- vector("double", length(lambda_loop))
-max_shortfall <- vector("double", length(lambda_loop))
-n_breaches <- vector("double", length(lambda_loop))
-count <- 1
+# check function avg_shortfall and max_shortfall --> That it is still in % if we input absolute margin!!
 
-for (i in lambda_loop) {
-  # assign lambda to the args list
-  args_long_FESX$lambda <- i
-
-  # calculate margins
-  FESX_Margin <-
-    calculate_margin(
-      product = "FESX", start = start_date, end = end_date,
-      args = args_long_FESX, steps = TRUE
-    )
-
-  # run Kupiec Test and discard those that do not meet test
-  KPF_result <- kupiec_test(FESX_Margin,
-    window = 750, model_conf_level = model_conf_level,
-    test_conf_level = test_conf_level
-  )
-
-  # filter out observations in 2020 only for procyclicality measure
-  # calculations
-  FESX_Margin <- FESX_Margin |>
-    filter(between(DATE, start_procyclicality, end_procyclicality))
-
-  measures <-
-    summary_stats(FESX_Margin, start = start_date, end = end_date)
-
-  lambda[count] <- i
-  costs[count] <- measures |>
-    filter(type == "costs") |>
-    pull(values)
-  procyclicality_30d[count] <- measures |>
-    filter(type == "max_30d") |>
-    pull(values)
-  procyclicality_5d[count] <- measures |>
-    filter(type == "max_5d") |>
-    pull(values)
-  max_shortfall[count] <- measures |>
-    filter(type == "max_shortfall") |>
-    pull(values)
-  n_breaches[count] <- measures |>
-    filter(type == "n_breaches") |>
-    pull(values)
-
-  print(
-    paste(
-      "loop", as.character(count), "/",
-      as.character(length(lambda_loop)), "finished",
-      sep = " "
-    )
-  )
-  count <- count + 1
-}
-
-results <- tibble(
-  lambda = lambda,
-  procyclicality = procyclicality,
-  costs = costs,
-  max_shortfall = max_shortfall,
-  KPF_result = KPF_result,
-  n_breaches = n_breaches
-)
-
-# do two separate graphs (average shortfall (including breaches) and then average costs!!!)
-
+# MENTION SOMEWHERE THAT WE DO IT IN % OF NOTIONAL BUT THAT THE
+# RESULTS WHEN DONE WITH ABSOLUTE VALUES ARE HIGHLY SIMILAR -->
+# APPEND THE RESULTS IN THE APPENDIX AND ALSO A CHART WHICH SHOWS THE ABSOLUTE MONETARY MARGIN
+# we need to make sure to measure absolute procyclicality!!! (justify why we measure costs in % of notional and not absolute as well!!!???)
 # assemble plot
-results |>
-  filter(KPF_result) |>
-  ggplot(aes(y = procyclicality_30d)) +
-  geom_point(aes(x = costs, color = lambda)) +
-  scale_color_gradientn(
-    colors = c("white", "darkgrey", "black"),
-    breaks = c(.9, .95, .99)
-  ) +
-  scale_x_continuous(labels = scales::label_percent()) +
-  # ,sec.axis = sec_axis(trans = \(x) x)) + # not needed on this scale
-  theme(
-    text = element_text(family = "lmroman"),
-    panel.grid.major = element_blank(),
-    panel.grid.major.y = element_line(
-      color = "grey",
-      linetype = 2,
-      linewidth = 0.5
-    ),
-    panel.background = element_rect(color = "black", fill = "white"),
-    legend.position = "bottom",
-    plot.title = element_text(size = 10, face = "bold"),
-    legend.key = element_rect(fill = "white"),
-  ) +
-  labs(
-    title = "30-day Procyclicality - FHS Model",
-    x = "Average Costs",
-    y = "30-day Procylicality",
-    color = "lambda"
-  ) +
-  guides(
-    color = guide_colorbar(
-      barwidth = 10,
-      barheight = .5,
-      title.position = "top",
-      title.hjust = .5
-    )
-  )
 
-# assemble plot for max shortfall and number of breaches in 2020
-results |>
-  filter(KPF_result) |>
-  ggplot(aes(x = max_shortfall * -1, y = procyclicality_30d)) +
-  geom_line()
-
-# for the paper, before doing this, show baseline models wihtout lambda calibration!!!
-# also in the lambda charts, highlight in color (or size or point type)
-# which is the calibration used by eurex!
-
-# explain the Kupiec Proportion of Failure test
-
-# same with 25% floor!
-
-
-# same with capped margin!
-
-# same with speed limits!
-
-
-# any other stuff???
-
-# report short portfolio and portfolio for
-# fixed income instruments in the appendix and just
-# refer to it during the paper!!!
-
-# also justify why we do average costs and not
-# excess costs to baseline model as done in other papers
-# --> Client centric view!
+# say we measure absolute values since when value of contract goes down, margins usually go up! (if we do not find a large difference, we can leave it at %!!!)

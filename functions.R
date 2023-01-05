@@ -372,6 +372,8 @@ calculate_margin <- function(product, start, end = NA, args,
 #' @return
 #' @examples
 
+# we could add the liquidation period of the model as an attribute to the output?
+# lag = 3 not accurate for other liquidation periods!! Take this into account!!!
 summary_stats <- function(margin_df, start, end) {
     # load required packages
     require(tidyr)
@@ -382,15 +384,15 @@ summary_stats <- function(margin_df, start, end) {
             RET_MPOR = lag(RET_MPOR, 3),
             CHANGE_1D = MARGIN / lead(MARGIN, 1),
             CHANGE_5D = MARGIN / lead(MARGIN, 5),
-            CHANGE_30D = MARGIN / lead(MARGIN, 30)
+            CHANGE_30D = MARGIN / lead(MARGIN, 20)
         )
 
 
     n_observations <- length(na.omit(margin_df$RET_MPOR))
     n_breaches <- sum(margin_df$MARGIN < margin_df$RET_MPOR * -1, na.rm = TRUE)
 
-    perc_breaches <- (n_breaches / n_observations) * 100
-    realized_conf_level <- 100 - perc_breaches
+    perc_breaches <- (n_breaches / n_observations)
+    realized_conf_level <- 1 - perc_breaches
 
     # gives average shortfall in % not in absolute terms!!! (must check!!!)
     avg_shortfall <- margin_df |>
@@ -399,6 +401,7 @@ summary_stats <- function(margin_df, start, end) {
         summarize(avg_shortfall = mean(shortfall)) |>
         pull(avg_shortfall)
 
+    # calculate here as is done by eurex the max loss to margin ratio and not the max shortfall ratio!
     max_shortfall <- margin_df |>
         filter(MARGIN < RET_MPOR * -1) |>
         mutate(shortfall = MARGIN + RET_MPOR) |>
@@ -444,6 +447,11 @@ summary_stats <- function(margin_df, start, end) {
 #'
 
 # Kupiec Proportion of Failure Stuff
+
+n_breaches <- 15
+perc_breaches  <- n_breaches / window
+model_conf_level
+test_conf_level
 kupiec_test <- function(margin_df, window, model_conf_level,test_conf_level) {
 
     # calculate vector for rolling kupiec_test statistics
@@ -474,4 +482,111 @@ kupiec_test <- function(margin_df, window, model_conf_level,test_conf_level) {
     )
 
     out <- all(test, na.rm = TRUE)
+}
+
+cap_margin <- function(margin_df, cap, floor){
+
+    margin_df <- margin_df |>
+        mutate(MARGIN = ifelse(MARGIN > cap, cap, MARGIN))
+    return(margin_df)
+}
+
+speed_limit <- function(margin_df, n_day, limit) {
+    # load required packages
+    require(dplyr)
+    # order by descending date
+    margin_df <- margin_df |>
+        arrange(DATE)
+
+    # initialize vectors
+    breach <- vector()
+    diff <- vector()
+    delta_nday <- vector()
+    margin_act <- margin_df$MARGIN
+    margin_limit <- margin_df$MARGIN
+
+    #margin_act <- append(margin_act, rep(margin_act[1], n_day), after = 0)
+    #margin_limit <- margin_act
+
+    # loop over values
+    for (i in (n_day + 1):length(margin_act)) {
+
+        delta_nday[i] <- margin_limit[i] / margin_limit[i - n_day]
+        breach[i] <- ifelse(delta_nday[i] > limit, TRUE, FALSE)
+        diff[i] <- margin_act[i] - margin_limit[i]
+
+        # if speed limit is breched
+        if (breach[i]) {
+            margin_limit[i] <- margin_limit[i - n_day] * limit
+            diff[i] <- margin_act[i] - margin_limit[i]
+        } else {
+            margin_limit[i] <-
+                margin_limit[i - n_day] * min(limit, delta_nday[i] * (1 + diff[i]))
+            diff[i] <- margin_act[i] - margin_limit[i]
+        }
+        i <- i + 1
+    }
+
+    margin_df <- margin_df |>
+        mutate(MARGIN = margin_limit) |>
+        arrange(desc(DATE))
+
+    return(margin_df)
+}
+
+buffer_margin <- function(margin_df, buffer, release){
+
+    margin_df <- margin_df |>
+        mutate(
+            MARGIN = pmax(pmin((1 + buffer) * MARGIN, (1 + buffer) * release), MARGIN)
+        )
+
+    return(margin_df)
+}
+
+speed_limit_test <- function(margin_df, n_day, limit){
+
+    margin_df <- margin_df |>
+        mutate(
+            DELTA_NDAY = MARGIN / lead(MARGIN, n_day),
+            LAGGED_MARGIN = lead(MARGIN, n_day),
+            SPEED_MARGIN = ifelse(
+                DELTA_NDAY > limit,
+                LAGGED_MARGIN * limit,
+                pmin(MARGIN, LAGGED_MARGIN * limit)
+            )
+        )
+
+    margin_df <- margin_df |>
+        select(-c(MARGIN, LAGGED_MARGIN)) |>
+        rename(MARGIN = SPEED_MARGIN)
+
+    return(margin_df)
+}
+
+plot_theme <- function(){
+    require(ggplot2)
+    theme_set(
+        theme(
+            text = element_text(family = "lmroman"),
+            plot.title = element_text(
+                size = 10, face = "bold", hjust = 0,
+                margin = margin(t = 0, l = 0, r = 0, b = 10)
+            ),
+            plot.subtitle = element_text(size = 8, face = "italic"),
+            plot.caption = element_text(size = 7, hjust = 1),
+            plot.margin = margin(0, 0, 0, 0),
+            panel.background = element_rect(color = "black", fill = "white"),
+            panel.grid.major = element_blank(),
+            legend.text = element_text(size = 7),
+            legend.title = element_text(size = 7),
+            legend.position = "bottom",
+            legend.box.spacing = unit(0, "cm"),
+            legend.key = element_rect(fill = "white", color = "white"),
+            axis.title = element_text(size = 7),
+            axis.text = element_text(size = 6),
+            strip.background = NULL,
+            strip.text = NULL
+        )
+    )
 }
