@@ -508,10 +508,44 @@ speed_limit <- function(margin_df, n_day, limit){
                 pmin(MARGIN, LAGGED_MARGIN * limit)
             )
         )
-
+    
     margin_df <- margin_df |>
         select(-c(MARGIN, LAGGED_MARGIN)) |>
         rename(MARGIN = SPEED_MARGIN)
+
+    return(margin_df)
+}
+
+speed_test <- function(margin_df, n_day, limit){
+
+      margin_df <- margin_df |>
+        arrange(DATE)
+
+    # initialize vectors
+    breach <- vector()
+    delta_nday  <- vector()
+    margin_act <- margin_df$MARGIN
+    margin_limit <- margin_df$MARGIN
+
+    # loop over values
+    for (i in (n_day + 1):length(margin_act)) {
+
+        delta_nday[i] <- margin_limit[i] / margin_limit[i - n_day]
+        breach[i] <- ifelse(delta_nday[i] > limit, TRUE, FALSE)
+
+        # if speed limit is breched
+        if (breach[i]) {
+            margin_limit[i] <- margin_limit[i - n_day] * limit
+        } else {
+            margin_limit[i] <- min(margin_limit[i - n_day] * limit, margin_act[i])
+        }
+        i <- i + 1
+        print(i)
+    }
+
+    margin_df <- margin_df |>
+        mutate(MARGIN = margin_limit) |>
+        arrange(desc(DATE))
 
     return(margin_df)
 }
