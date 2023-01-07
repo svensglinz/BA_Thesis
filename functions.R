@@ -211,7 +211,7 @@ calculate_fhs_margin <- function(product, start, end,
     df <- df |>
         arrange(desc(DATE)) |>
         mutate(
-            MARGIN = abs(rollmean(MARGIN, 3, fill = NA, align = "left"))
+            MARGIN = abs(rollmean(MARGIN, args$MPOR, fill = NA, align = "left"))
         ) |>
         na.omit()
 
@@ -234,7 +234,7 @@ calculate_fhs_margin <- function(product, start, end,
 #' Name must be in column INST of the masterfile
 #' @param start string in format "dd/mm/yyyy". Start period for which margin should 
 #' be calculated
-#' @param end string in format "dd/mm/yyyy". End period for which margin should 
+#' @param end string in format "dd/mm/yyyy". End period for which margin should
 #' be calculated
 #' @param args list with elements #short (T/F), #lambda (numeric), #MPOR (numeric),
 #' #... which are needed to calculate a Margin
@@ -377,11 +377,11 @@ calculate_margin <- function(product, start, end = NA, args,
 summary_stats <- function(margin_df, start, end) {
     # load required packages
     require(tidyr)
-
+    MPOR <- max(margin_df$BUCKET)
     margin_df <- margin_df |>
         filter(between(DATE, start, end)) |>
         mutate(
-            RET_MPOR = lag(RET_MPOR, 3),
+            RET_MPOR = lag(RET_MPOR, MPOR),
             CHANGE_1D = MARGIN / lead(MARGIN, 1),
             CHANGE_5D = MARGIN / lead(MARGIN, 5),
             CHANGE_30D = MARGIN / lead(MARGIN, 20)
@@ -447,11 +447,6 @@ summary_stats <- function(margin_df, start, end) {
 #'
 
 # Kupiec Proportion of Failure Stuff
-
-n_breaches <- 15
-perc_breaches  <- n_breaches / window
-model_conf_level
-test_conf_level
 kupiec_test <- function(margin_df, window, model_conf_level,test_conf_level) {
 
     # calculate vector for rolling kupiec_test statistics
@@ -491,60 +486,17 @@ cap_margin <- function(margin_df, cap, floor){
     return(margin_df)
 }
 
-speed_limit <- function(margin_df, n_day, limit) {
-    # load required packages
-    require(dplyr)
-    # order by descending date
-    margin_df <- margin_df |>
-        arrange(DATE)
-
-    # initialize vectors
-    breach <- vector()
-    diff <- vector()
-    delta_nday <- vector()
-    margin_act <- margin_df$MARGIN
-    margin_limit <- margin_df$MARGIN
-
-    #margin_act <- append(margin_act, rep(margin_act[1], n_day), after = 0)
-    #margin_limit <- margin_act
-
-    # loop over values
-    for (i in (n_day + 1):length(margin_act)) {
-
-        delta_nday[i] <- margin_limit[i] / margin_limit[i - n_day]
-        breach[i] <- ifelse(delta_nday[i] > limit, TRUE, FALSE)
-        diff[i] <- margin_act[i] - margin_limit[i]
-
-        # if speed limit is breched
-        if (breach[i]) {
-            margin_limit[i] <- margin_limit[i - n_day] * limit
-            diff[i] <- margin_act[i] - margin_limit[i]
-        } else {
-            margin_limit[i] <-
-                margin_limit[i - n_day] * min(limit, delta_nday[i] * (1 + diff[i]))
-            diff[i] <- margin_act[i] - margin_limit[i]
-        }
-        i <- i + 1
-    }
-
-    margin_df <- margin_df |>
-        mutate(MARGIN = margin_limit) |>
-        arrange(desc(DATE))
-
-    return(margin_df)
-}
-
 buffer_margin <- function(margin_df, buffer, release){
 
-    margin_df <- margin_df |>
-        mutate(
-            MARGIN = pmax(pmin((1 + buffer) * MARGIN, (1 + buffer) * release), MARGIN)
-        )
-
+        margin_df <- margin_df |>
+            mutate(
+                MARGIN = pmax(pmin((1 + buffer) * MARGIN, (1 + buffer) * release), MARGIN)
+            )
+        
     return(margin_df)
 }
 
-speed_limit_test <- function(margin_df, n_day, limit){
+speed_limit <- function(margin_df, n_day, limit){
 
     margin_df <- margin_df |>
         mutate(
@@ -566,8 +518,9 @@ speed_limit_test <- function(margin_df, n_day, limit){
 
 plot_theme <- function(){
     require(ggplot2)
-    theme_set(
-        theme(
+    theme <- theme_bw()
+    theme_set(theme)
+    theme_update(
             text = element_text(family = "lmroman"),
             plot.title = element_text(
                 size = 10, face = "bold", hjust = 0,
@@ -588,5 +541,4 @@ plot_theme <- function(){
             strip.background = NULL,
             strip.text = NULL
         )
-    )
 }
