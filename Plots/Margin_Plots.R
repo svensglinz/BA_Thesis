@@ -9,6 +9,7 @@ library(ggsci)
 library(ggExtra)
 library(ggforce)
 library(patchwork)
+library(showtext)
 
 # add fonts for plotting
 font_add(
@@ -89,19 +90,19 @@ FGBX_Margin_long <-
     Margin = Margin * -1,
     MPOR_returns = lag(MPOR_returns, 3),
     MPOR_returns = exp(MPOR_returns) - 1,
-    breach = ifelse(MPOR_returns < Margin, T, F)
+    breach = ifelse(MPOR_returns < Margin, TRUE, FALSE)
   )
 
 FESX_Margin_short <-
   margin_calculator(
     product = "FESX", start = start_date, end = end_date,
-    args = args_short, steps = T
+    args = args_short, steps = TRUE
   ) |>
   select(DATE, MPOR_returns, Margin) |>
   mutate(
     MPOR_returns = lag(MPOR_returns * -1, 3),
     MPOR_returns = exp(MPOR_returns) - 1,
-    breach = ifelse(MPOR_returns > Margin, T, F)
+    breach = ifelse(MPOR_returns > Margin, TRUE, FALSE)
   )
 
 FGBX_Margin_short <-
@@ -245,3 +246,20 @@ out <-
   plot_layout(guides = "collect")
 
 ggsave("margins.png", plot = out, device = png, width = 15.9, height = 8.5, unit = "cm")
+
+
+test <- df |>
+  arrange(DATE) |>
+  filter(DATE < as.Date("2018-01-13"))
+
+
+test |>
+  slice(1:250) |>
+  nest(data = -BUCKET) |>
+  mutate(margin = map(data, \(x){
+    deval <- (x$LOG_RET_MPOR - x$EWMA_MEAN) / x$EWMA_VOL
+    reval <- deval * x$EWMA_VOL[1]
+    margin <- quantile(reval, .026, na.rm = TRUE)
+    return(exp(margin) - 1) * 1.37
+  })) |>
+  unnest(margin)

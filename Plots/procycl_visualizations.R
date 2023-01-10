@@ -1,6 +1,8 @@
+# load libraries
+library(tidyvere)
+library(ggrepel)
 
-
-measures <- read_csv("Data/procyclicality_calculations.csv")
+measures <- read_csv("Data/procyclicality_calculations_CAP95.csv")
 
 
 plot_df <- measures |>
@@ -9,11 +11,14 @@ plot_df <- measures |>
     pivot_longer(c(peak_to_through, max_30d), names_to = "measures", values_to = "values") |>
     mutate(label = ifelse(lambda == .92, model, ""))
 
+plot_df |>
+    filter(model %in% c("baseline", "cap_floor"), measures == "peak_to_through") |>
+    view()
 
 for (i in c("cap", "speed", "baseline", "floor", "buffer", "cap_floor", "speed_floor")) {
     plot_df |>
         filter(model %in% c(i, "baseline")) |>
-        ggplot(aes(x = round(costs * 100, 1), y = values, color = lambda, shape = model)) +
+        ggplot(aes(x = round(costs * 100, 3), y = values, color = lambda, shape = model)) +
         geom_point() +
         geom_point(
             data = plot_df |> filter(model %in% c(i, "baseline"), lambda == .96),
@@ -90,18 +95,29 @@ plot_df <- measures |>
         label = ifelse(lambda == .995, model, NA)
     )
 
-plot_df |>
-    ggplot(aes(x = lambda, y = values, group = model)) +
+library(ggh4x)
+measures |>
+    filter(type %in% c("n_breaches", "avg_shortfall", "max_shortfall"), period == "all") |>
+    mutate(
+        label = ifelse(lambda == .995, model, NA),
+        values = ifelse(grepl("shortfall", type), values * -100, values)
+    ) |>
+    ggplot(aes(x = lambda, y = values, color = model, group = model)) +
     geom_line() +
     scale_x_continuous(
         expand = expansion(add = c(.01, .05))
     ) +
-    geom_text_repel(aes(label = label), hjust = 0, direction = "y") +
+    geom_text_repel(aes(label = label, ), hjust = 0, size = 3, direction = "y", max.overlaps = 10000) +
     geom_vline(xintercept = .96, linetype = "dashed", color = "darkgrey") +
-    facet_wrap(~type, scales = "free_y")
-library(ggrepel)
-
-ggsave("Plots/Output/Risk_All.png")
+    facet_grid2(period ~ type, scales = "free", independent = "y") +
+    guides(color = "none") +
+    theme(
+        text = element_text(family = "lmroman"),
+        strip.background = element_rect(color = "transparent", fill = "transparent"),
+        panel.background = element_rect(color = "black", fill = "white"),
+        strip.placement = "outside"
+    )
+ggsave("Plots/Output/Risk_all.png", last_plot(), width = 17.6, height = 7, unit = "cm")
 
 
 
@@ -118,48 +134,31 @@ margin_floor |>
     summarize(n())
 quantile(rets * -1, .99, na.rm = TRUE)
 
-
-
-
-
-
-
-
-
-
 start_date <- as.Date("2006-01-01")
 end_date <- as.Date("2021-01-01")
 
 # plot of short and long margin in baseline scenario!
 args_long_FESX <-
     list(
-        MPOR = 2, factor = 1.37, quantile = 0.974,
-        lambda = .96, n_day = 750, floor = FALSE,
+        MPOR = 3, factor = 1.37, quantile = .978,
+        lambda = .9593, n_day = 750, burn_in = 350,
         absolute = FALSE, liq_group = "PEQ01",
         short = FALSE
     )
 
-args_short_FESX <- list(
-    MPOR = 3, factor = 1.37, quantile = 0.974,
-    lambda = .959, n_day = 750, floor = FALSE,
+args_FGBL <- list(
+    MPOR = 2, factor = 1.29, quantile = 0.978,
+    lambda = .9727, n_day = 750, burn_in = 350,
     absolute = FALSE, liq_group = "PEQ01",
-    short = TRUE
+    short = FALSE
 )
 
-margin_baseline_long_3 <- calculate_margin(
-    product = "FESX", start = start_date, end = end_date,
+tic()
+long_FESX_reg <- calculate_margin(
+    product = "FESX", start = as.Date("2018-01-01"), end = as.Date("2023-01-01"),
     args = args_long_FESX, steps = TRUE
 )
-
-margin_baseline_long_4 <- calculate_margin(
-    product = "FESX", start = start_date, end = end_date,
-    args = args_long_FESX, steps = TRUE
-)
-
-margin_baseline_long_2 <- calculate_margin(
-    product = "FESX", start = start_date, end = end_date,
-    args = args_long_FESX, steps = TRUE
-)
+toc()
 
 margin_baseline_short <- calculate_fhs_margin(
     product = "FESX", start = start_date, end = end_date,
@@ -174,16 +173,31 @@ df <- margin_baseline_long |>
         MARGIN_LONG = MARGIN.x, MARGIN_SHORT = MARGIN.y
     ) |>
     mutate(COLOR = case_when(
-        (lag(RET_MPOR_LONG, 3) < -MARGIN_LONG) | (lag(RET_MPOR_LONG, 3) > MARGIN_SHORT) ~ "red",
+        (lag(RET_MPOR_LONG, 0) < -MARGIN_LONG) | (lag(RET_MPOR_LONG, 0) > MARGIN_SHORT) ~ "red",
         TRUE ~ "black"
     ))
+
+long_FESX_reg |>
+    ggplot(aes(DATE, MARGIN * -1)) +
+    geom_line(color = "blue") +
+    geom_line(data = long_FESX_reg, color = "red")
 
 df |>
     ggplot(aes(x = DATE)) +
     geom_line(aes(y = MARGIN_LONG * -1)) +
     geom_line(aes(y = MARGIN_SHORT)) +
-    geom_jitter(aes(y = lag(RET_MPOR_LONG, 3)), color = df$COLOR)
-xlim(start_2020, end_2020)
+    geom_jitter(aes(y = lag(RET_MPOR_LONG, 3)), color = df$COLOR) +
+    scale_y_continuous(breaks = seq(-.2, .2, .05)) +
+    long |>
+    ggplot(aes(DATE, MARGIN)) +
+    geom_line()
+test |>
+    filter(BUCKET == 1) |>
+    slice(1:250) |>
+    arrange((revalued)) |>
+    filter(revalued < -0.0885) |>
+    pull(revalued)
+
 
 tibble(NULL) |>
     ggplot(aes(x = DATE, y = MARGIN)) +
@@ -193,7 +207,7 @@ tibble(NULL) |>
     geom_hline(yintercept = .088) +
     geom_hline(yintercept = .094)
 
-summary_stats(margin_baseline_long_3, start_2020, end_2020)
+summary_stats(long_FESX_reg, start_covid, end_covid)
 summary_stats(margin_baseline_long_4, start_2020, end_2020)
 summary_stats(margin_baseline_long_2, start_date, end_date)
 margin_baseline_long_margin_baseline_long_3$MARGIN

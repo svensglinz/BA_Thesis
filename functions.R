@@ -1,4 +1,3 @@
-
 #' EWMA_Vol calculates the exponentially weighted volatility of a return
 #' vector with a burn-in period of n_day and a decay factor lambda
 #' @param returns numerical vector of a financial return series
@@ -41,32 +40,54 @@ read_master <- function(path) {
     return(out)
 }
 
-# Functions needed for within FHS_Calculation!
-roll_quantile <- function(vec, width, quant, by.column = FALSE) {
-    out <- rollapply(
-        data = vec, width = width,
-        FUN = function(x) quantile(x, quant, na.rm = TRUE)[[1]],
-        fill = NA,
+ewma_vol <- function(returns, burn_in, lambda, mean = TRUE) {
+    # load required packages
+    require(zoo)
+    # calculate return weights
+    weight <- (1 - lambda) / (1 - (lambda^burn_in)) * ((lambda)^c(0:(burn_in - 1)))
+
+    # calculate ewma mean (only use half a burn in period)
+    ewma_mean <- rollapply(returns, burn_in,
         align = "left",
-        by.column = by.column
+        fill = NA, FUN = function(x) {
+            ewma_mean <- sum(weight * x)
+            return(ewma_mean)
+        }
+    )
+
+    # calculate ewma volatility
+    out <- rollapply(
+        tibble(returns = returns, ewma_mean = ewma_mean),
+        burn_in,
+        by.column = FALSE,
+        align = "left",
+        fill = NA,
+        FUN = function(x) {
+
+            if (mean) {
+                vol <- sqrt(sum(weight * (x[, "returns"] - x[, "ewma_mean"])^2))
+            } else {
+                vol <- sqrt(sum(weight * (x[, "returns"])^2))
+            }
+            return(vol)
+        }
     )
 
     return(out)
 }
 
-ewma_vol <- function(returns, n_day, lambda) {
+ewma_mean <- function(returns, burn_in, lambda) {
     # load required packages
     require(zoo)
 
     # calculate return weights
-    weight <- (1 - lambda) * ((lambda)^c(0:(n_day - 1)))
-
+    weight <- (1 - lambda) / (1 - (lambda^burn_in)) * ((lambda)^c(0:(burn_in - 1)))
     # rolling calculation of volatility observations
-    out <- rollapply(returns, n_day,
+    out <- rollapply(returns, burn_in,
         align = "left",
         fill = NA, FUN = function(x) {
-            vol <- sqrt(sum(weight * x^2))
-            return(vol)
+            ewma_mean <- sum(weight * x)
+            return(ewma_mean)
         }
     )
 
@@ -98,20 +119,19 @@ calculate_fhs_margin <- function(product, start, end,
     require(tidyr)
     require(zoo)
     require(purrr)
-    require(magrittr)
     require(runner)
 
+    options(dplyr.summarise.inform = FALSE)
     # get returns of product from master
     df <-
         master$returns |>
         filter(INST == product) |>
         filter(DATE <= end) |>
         select(-INST) |>
-        na.omit() |>
         arrange(desc(DATE))
 
     # cutoff date + values needed for vola calculation
-    cutoff <- max(which(df$DATE >= start)) + 2 * args$n_day
+    cutoff <- max(which(df$DATE >= start)) + args$n_day + 2 * args$burn_in
 
     # adjusted cutoff that rows are divisible by MPOR
     adj_cutoff <- round(cutoff / args$MPOR) * args$MPOR
@@ -131,11 +151,10 @@ calculate_fhs_margin <- function(product, start, end,
         ) |>
         slice(c(1:(n() - args$MPOR))) # delete last MPOR-1 observations (as NA)
 
-    # invert returns for short positions
+    # invert returns for short positions (for summary stats calculation)
     if (args$short) {
         df <- df |>
             mutate(
-                LOG_RET_MPOR = LOG_RET_MPOR * -1,
                 RET_MPOR = RET_MPOR * -1
             )
     }
@@ -145,87 +164,54 @@ calculate_fhs_margin <- function(product, start, end,
         nest(data = -BUCKET) |>
         mutate(
             EWMA_VOL = map(data, ~ ewma_vol(
-                returns = .$LOG_RET_MPOR, n_day = (args$n_day / args$MPOR),
+                returns = .$LOG_RET_MPOR, burn_in = (args$burn_in / args$MPOR),
+                lambda = args$lambda, mean = args$mean)),
+            EWMA_MEAN = map(data, ~ ewma_mean(
+                returns = .$LOG_RET_MPOR, burn_in = (args$burn_in / args$MPOR),
                 lambda = args$lambda))
         ) |>
         unnest(everything()) |>
-        na.omit() |>
-        # ensure there that length is always divisible by MPOR
-        slice(1:(trunc(n() / args$MPOR) * args$MPOR)) |>
-        arrange(desc(DATE))
-
-    # DO WE SCALE THE LOG RETURNS OR THE NORMAL RETURNS???!!!
-    # create devalued returns for full revaluation further below
-    df <- df |>
-        mutate(DEVALUED = LOG_RET_MPOR / EWMA_VOL)
-
-    # calculate revaulation factor (volaility means over buckets)
-    revalue_factor <-
-        rep(rollapply(
-            data = df$EWMA_VOL,
-            width = args$MPOR, fill = NULL,
-            align = "left", by = args$MPOR,
-            FUN = mean
-        ), args$MPOR)
-
-    # join revaluation factor onto data set
-    df <- df |>
-        arrange(BUCKET, desc(DATE)) |>
-        mutate(REVAL_FCT = revalue_factor)
+            # ensure there that length is always divisible by MPOR
+            slice(1:(trunc(n() / args$MPOR) * args$MPOR)) |>
+            arrange(desc(DATE)) |>
+        drop_na(EWMA_VOL)
 
     df <- df |>
-        nest(data = -BUCKET) |>
         mutate(
-            VOL_FLOOR = map(data, ~ roll_quantile(
-                vec = .$EWMA_VOL,
-                width = args$n_day / args$MPOR,
-                quant = .5))
-        ) |>
-        unnest(everything())
+            deval = (LOG_RET_MPOR - lead(EWMA_MEAN, args$MPOR)) / lead(EWMA_VOL, args$MPOR, 1)
+            #deval = lead(deval, 1)
+        )
 
-    # calculate Margin within buckets
+    margin_vector <- runner(
+        df,
+        na_pad = TRUE,
+        lag = -(args$n_day) + 1,
+        k = args$n_day,
+        f = function(x) {
+                margin <- x |>
+                    mutate(EWMA_REVAL = mean(EWMA_VOL[1:args$MPOR])) |>
+                    group_by(BUCKET) |>
+                    summarize(
+                        floor_revalue_fct = quantile(EWMA_VOL, .5, na.rm = TRUE, type = 2),
+                        revalue_fct = max(floor_revalue_fct, EWMA_REVAL[1], na.rm = TRUE),
+                        revalued = (exp(deval * revalue_fct) - 1) * args$factor,
+                        margin = quantile(revalued, 1 - args$quantile, na.rm = TRUE, type = 2)
+                    ) |>
+                        pull(margin)
+                    mean(margin)
+                    return(mean(margin))
+            }
+    )
+
     df <- df |>
-        nest(data = -BUCKET) |>
-        mutate(MARGIN = map(data, function(x) {
-            # calculate rolling quantiles of revalued returns
-            runner(
-                x = x,
-                k = args$n_day / args$MPOR,
-                f = function(x) {
-                    revalued <- x$DEVALUED * max(x$VOL_FLOOR[1],
-                        x$REVAL_FCT[1], na.rm = TRUE)[[1]]
-
-                    revalued <- exp(revalued) - 1
-                    margin <- quantile(revalued, (1 - args$quantile) / 2,
-                        na.rm = TRUE)[[1]] * args$factor
-                    return(margin)
-                },
-                na_pad = TRUE,
-                lag = - (args$n_day / args$MPOR) + 1
-            )})
-        ) |>
-        unnest(everything()) |>
-        na.omit()
-
-    # calculate Margin as mean over all buckets & take absolute
-    df <- df |>
-        arrange(desc(DATE)) |>
-        mutate(
-            MARGIN = abs(rollmean(MARGIN, args$MPOR, fill = NA, align = "left"))
-        ) |>
-        na.omit()
-
-    # returns absolute margin values
-    if (abs) {
-        df <- df |>
-            mutate(MARGIN = MARGIN * PRICE)
-    }
+        mutate(MARGIN = margin_vector * -1)
 
     # return output
     if (steps) {
-        return(df)
+        return(df |>
+            filter(between(DATE, start, end)))
     } else {
-        return(df |> select(DATE, MARGIN))
+        return(df |> select(DATE, MARGIN) |>  filter(between(DATE, start, end)))
     }
 }
 
@@ -296,7 +282,7 @@ calculate_sp_margin <- function(product, start, end,
         group_by(VALID_FROM, VALID_TO, BUCKET) |>
         summarize(
             MARGIN = quantile(LOG_RET_MPOR, 1 - CONF_LEVEL[1] / 100,
-                na.rm = TRUE
+                na.rm = TRUE, type = 2
             )
         ) |>
         ungroup()
@@ -320,7 +306,7 @@ calculate_sp_margin <- function(product, start, end,
         joined <- joined |> mutate(MARGIN = MARGIN * PRICE)
     }
 
-    return(joined  |> select(-PRICE))
+    return(joined |> filter(between(DATE, start, end)))
 }
 
 #' FUNCTION DESCRIPTION
@@ -338,22 +324,25 @@ calculate_sp_margin <- function(product, start, end,
 #' ... --> SPECIFY EXAMPLE
 
 calculate_margin <- function(product, start, end = NA, args,
-                             steps = FALSE, abs = FALSE) {
+                             steps = FALSE, abs = FALSE, unfloored_df = NULL) {
     # load required packages
     require(tidyr)
-
-    fhs <- calculate_fhs_margin(
-        product = product, start = start,
-        end = end, args = args, steps = steps, abs = abs
-    )
+    if (is.null(unfloored_df)){
+        fhs <- calculate_fhs_margin(
+            product = product, start = start,
+            end = end, args = args, steps = steps, abs = abs
+        )
+    } else {
+        fhs <- unfloored_df
+    }
 
     sp <- calculate_sp_margin(
         product = product, start = start,
         end = end, args = args, abs = abs
-    )
+    )  |>  select(DATE, MARGIN)
 
     combined <- fhs |>
-        left_join(sp, by = c("DATE")) |>
+        inner_join(sp, by = c("DATE")) |>
         rename(FHS_MARGIN = MARGIN.x, SP_MARGIN = MARGIN.y)
 
     # larger of floor or FHS Margin
@@ -366,6 +355,7 @@ calculate_margin <- function(product, start, end = NA, args,
         return(combined |> select(DATE, MARGIN))
     }
 }
+
 
 #' Function Description
 #' @param margins
@@ -387,7 +377,6 @@ summary_stats <- function(margin_df, start, end) {
             CHANGE_30D = MARGIN / lead(MARGIN, 20)
         )
 
-
     n_observations <- length(na.omit(margin_df$RET_MPOR))
     n_breaches <- sum(margin_df$MARGIN < margin_df$RET_MPOR * -1, na.rm = TRUE)
 
@@ -407,9 +396,22 @@ summary_stats <- function(margin_df, start, end) {
         mutate(shortfall = MARGIN + RET_MPOR) |>
         summarize(max_shortfall = min(shortfall)) |>
         pull(max_shortfall)
+    
+    max_ltm <- margin_df |>
+        filter(MARGIN < RET_MPOR * -1) |>
+        mutate(LTM = (RET_MPOR * -1) / MARGIN) |>
+        summarize(max_ltm = max(LTM, na.rm = TRUE)) |> 
+        pull(max_ltm)
+
+    avg_ltm <- margin_df |>
+        filter(MARGIN < RET_MPOR * -1) |>
+        mutate(LTM = (RET_MPOR * -1) / MARGIN) |>
+        summarize(avg_ltm = mean(LTM, na.rm = TRUE)) |>
+        pull(avg_ltm)
 
     costs <- mean(margin_df$MARGIN, na.rm = TRUE)
 
+    # make sure that the max is after the min!!! (this is not currently the case!)
     peak_to_through <- max(margin_df$MARGIN, na.rm = TRUE) /
         min(margin_df$MARGIN, na.rm = T)
 
@@ -430,12 +432,12 @@ summary_stats <- function(margin_df, start, end) {
             "n_breaches", "N_observations", "perc_breaches",
             "conf_level", "avg_shortfall",
             "max_shortfall", "costs", "peak_to_through",
-            "max_1d", "max_5d", "max_30d"
+            "max_1d", "max_5d", "max_30d", "max_ltm", "avg_ltm"
         ),
         values = c(
             n_breaches, n_observations, perc_breaches,
             realized_conf_level, avg_shortfall, max_shortfall,
-            costs, peak_to_through, max_1d, max_5d, max_30d
+            costs, peak_to_through, max_1d, max_5d, max_30d, max_ltm, avg_ltm
         )
     )
 
@@ -496,27 +498,8 @@ buffer_margin <- function(margin_df, buffer, release){
     return(margin_df)
 }
 
+
 speed_limit <- function(margin_df, n_day, limit){
-
-    margin_df <- margin_df |>
-        mutate(
-            DELTA_NDAY = MARGIN / lead(MARGIN, n_day),
-            LAGGED_MARGIN = lead(MARGIN, n_day),
-            SPEED_MARGIN = ifelse(
-                DELTA_NDAY > limit,
-                LAGGED_MARGIN * limit,
-                pmin(MARGIN, LAGGED_MARGIN * limit)
-            )
-        )
-    
-    margin_df <- margin_df |>
-        select(-c(MARGIN, LAGGED_MARGIN)) |>
-        rename(MARGIN = SPEED_MARGIN)
-
-    return(margin_df)
-}
-
-speed_test <- function(margin_df, n_day, limit){
 
       margin_df <- margin_df |>
         arrange(DATE)
@@ -528,9 +511,9 @@ speed_test <- function(margin_df, n_day, limit){
     margin_limit <- margin_df$MARGIN
 
     # loop over values
-    for (i in (n_day + 1):length(margin_act)) {
+    for (i in (n_day + 1):length(margin_limit)) {
 
-        delta_nday[i] <- margin_limit[i] / margin_limit[i - n_day]
+        delta_nday[i] <- ifelse(is.na(margin_limit[i] / margin_limit[i - n_day]), 0, margin_limit[i] / margin_limit[i - n_day])
         breach[i] <- ifelse(delta_nday[i] > limit, TRUE, FALSE)
 
         # if speed limit is breched
