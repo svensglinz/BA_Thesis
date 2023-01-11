@@ -1,6 +1,7 @@
 # load libraries
 library(tidyvere)
 library(ggrepel)
+library(ggh4x)
 
 measures <- read_csv("Data/procyclicality_calculations_CAP95.csv")
 
@@ -61,6 +62,12 @@ for (i in c("cap", "speed", "baseline", "floor", "buffer", "cap_floor", "speed_f
 }
 
 
+plot_df <- measures |>
+    filter(type %in% c("max_30d", "peak_to_through", "costs"), period == "all") |>
+    pivot_wider(names_from = type, values_from = values) |>
+    pivot_longer(c(peak_to_through, max_30d), names_to = "measures", values_to = "values") |>
+    mutate(label = ifelse(lambda == .995, model, NA))
+
 plot_df |>
     ggplot(aes(y = values, x = costs, color = model)) +
     geom_point(aes(alpha = lambda),
@@ -79,7 +86,7 @@ plot_df |>
     labs(
         title = "Comparison of APC Tools"
     ) +
-    facet_wrap(~measures)
+    facet_wrap(~measures, scales = "free_y")
 
 ggsave(
     "Plots/Output/combined_murphey.png", last_plot(),
@@ -95,30 +102,64 @@ plot_df <- measures |>
         label = ifelse(lambda == .995, model, NA)
     )
 
-library(ggh4x)
-measures |>
-    filter(type %in% c("n_breaches", "avg_shortfall", "max_shortfall"), period == "all") |>
+# abbreviations
+# buffer --> b
+# buffer_floored --> bf
+# cap --> c
+# cap_floord --> cf
+# baseline --> bl
+# floored --> f
+# speed --> s
+# speed floored --> sf
+
+# set labels
+lambda_label <- .995
+plot_df <- measures |>
+    mutate(label = case_when(
+        (lambda == lambda_label & model == "buffer" & type == "max_shortfall") ~ "buffer",
+        (lambda == lambda_label & period != "covid" & model == "cap" & type == "max_shortfall") ~ "other",
+        (lambda == lambda_label & period == "covid" & model == "speed" & type == "max_shortfall") ~ "speed",
+        (lambda == lambda_label & period == "covid" & model == "cap" & type == "max_shortfall") ~ "other",
+        (lambda == lambda_label & model == "buffer" & type == "n_breaches") ~ "buffer",
+        (lambda == lambda_label & period == "covid" & model == "speed" & type == "max_shortfall") ~ "speed",
+        (lambda == lambda_label & period == "dotcom" & model == "cap" & type == "n_breaches") ~ "other",
+        (lambda == lambda_label & period == "financialcrisis" & model == "cap" & type == "n_breaches") ~ "other + ?",
+        (lambda == lambda_label & period == "financialcrisis" & model == "floor" & type == "n_breaches") ~ "other + ?",
+        (lambda == lambda_label & period == "covid" & model == "buffer" & type == "avg_shortfall") ~ "buffer",
+        (lambda == lambda_label & period == "covid" & model == "cap" & type == "avg_shortfall") ~ "cap",
+        (lambda == lambda_label & period == "covid" & model == "cap" & type == "n_breaches") ~ "other",
+        TRUE ~ NA_character_
+    )) |>
+    filter(type %in% c("n_breaches", "avg_shortfall", "max_shortfall"), period != "all") |>
     mutate(
-        label = ifelse(lambda == .995, model, NA),
         values = ifelse(grepl("shortfall", type), values * -100, values)
-    ) |>
+    )
+plot_df |>
     ggplot(aes(x = lambda, y = values, color = model, group = model)) +
     geom_line() +
+    geom_point(data = plot_df |> filter(lambda == .995)) +
     scale_x_continuous(
         expand = expansion(add = c(.01, .05))
     ) +
+    labs(
+        title = "Shortfall and Number of Breaches - Stress Periods",
+        x = expression(lambda)
+    ) +
     geom_text_repel(aes(label = label, ), hjust = 0, size = 3, direction = "y", max.overlaps = 10000) +
     geom_vline(xintercept = .96, linetype = "dashed", color = "darkgrey") +
+    # facet_nested_wrap(period ~ type, scales = "free_y") +
     facet_grid2(period ~ type, scales = "free", independent = "y") +
-    guides(color = "none") +
+    # guides(color = "none") +
     theme(
+        legend.position = "bottom",
+        axis.title.x = element_text(family = "sams"),
         text = element_text(family = "lmroman"),
         strip.background = element_rect(color = "transparent", fill = "transparent"),
         panel.background = element_rect(color = "black", fill = "white"),
         strip.placement = "outside"
-    )
-ggsave("Plots/Output/Risk_all.png", last_plot(), width = 17.6, height = 7, unit = "cm")
-
+    ) +
+    scale_colour_wsj()
+ggsave("Plots/Output/Risk_all.png", last_plot(), width = 17.6, height = 12, unit = "cm")
 
 
 # calculation of untiltered historical margin vs. stress floor implemented by eurex!

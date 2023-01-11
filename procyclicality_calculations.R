@@ -4,7 +4,7 @@ library(tidyverse)
 source("functions.R")
 master <- read_master("Data/data_input.xlsx")
 
-# define function paremeters
+# define function paremeters (FESX)
 start_all <- as.Date("2001-03-20")
 end_all <- as.Date("2023-01-01")
 start_covid <- as.Date("2020-01-01")
@@ -14,6 +14,9 @@ end_fc <- as.Date("2009-03-31")
 start_dotcom <- as.Date("2001-03-20")
 end_dotcom <- as.Date("2003-04-01")
 start_regular <- as.Date("2004-05-20")
+
+# define function paremeters (FGBL)
+
 
 periods <- list(
     all = tibble(start = start_all, end = end_all, period = "all"),
