@@ -1,10 +1,9 @@
 # load libraries
-library(tidyvere)
+library(tidyverse)
 library(ggrepel)
 library(ggh4x)
 
 measures <- read_csv("Data/procyclicality_calculations_CAP95.csv")
-
 
 plot_df <- measures |>
     filter(period == "all", type %in% c("costs", "max_30d", "peak_to_through")) |>
@@ -12,9 +11,6 @@ plot_df <- measures |>
     pivot_longer(c(peak_to_through, max_30d), names_to = "measures", values_to = "values") |>
     mutate(label = ifelse(lambda == .92, model, ""))
 
-plot_df |>
-    filter(model %in% c("baseline", "cap_floor"), measures == "peak_to_through") |>
-    view()
 
 for (i in c("cap", "speed", "baseline", "floor", "buffer", "cap_floor", "speed_floor")) {
     plot_df |>
@@ -68,6 +64,10 @@ plot_df <- measures |>
     pivot_longer(c(peak_to_through, max_30d), names_to = "measures", values_to = "values") |>
     mutate(label = ifelse(lambda == .995, model, NA))
 
+a <- plot_df
+plot_df <- a |>
+    filter(model %in% c("baseline", "cap", "cap_floor"))
+
 plot_df |>
     ggplot(aes(y = values, x = costs, color = model)) +
     geom_point(aes(alpha = lambda),
@@ -80,9 +80,9 @@ plot_df |>
     geom_text_repel(
         color = "black",
         aes(label = label),
-        show.legend = FALSE, max.overlaps = 1000
+        show.legend = FALSE, max.overlaps = 1000, min.segment.length = 0
     ) +
-    guides(color = "none") +
+    # guides(color = "none") +
     labs(
         title = "Comparison of APC Tools"
     ) +
@@ -161,7 +161,6 @@ plot_df |>
     scale_colour_wsj()
 ggsave("Plots/Output/Risk_all.png", last_plot(), width = 17.6, height = 12, unit = "cm")
 
-
 # calculation of untiltered historical margin vs. stress floor implemented by eurex!
 rets <- margin_baseline |>
     group_by(BUCKET) |>
@@ -189,56 +188,94 @@ args_long_FESX <-
 
 args_FGBL <- list(
     MPOR = 2, factor = 1.29, quantile = 0.978,
-    lambda = .9727, n_day = 750, burn_in = 350,
-    absolute = FALSE, liq_group = "PEQ01",
-    short = FALSE
+    lambda = .9727, n_day = 750, burn_in = 500,
+    absolute = FALSE, liq_group = "PFI01",
+    short = FALSE, mean = TRUE
 )
 
-tic()
-long_FESX_reg <- calculate_margin(
-    product = "FESX", start = as.Date("2018-01-01"), end = as.Date("2023-01-01"),
-    args = args_long_FESX, steps = TRUE
-)
-toc()
 
-margin_baseline_short <- calculate_fhs_margin(
-    product = "FESX", start = start_date, end = end_date,
+
+
+
+
+
+# visualization of baseline margin evolution!
+start_all <- as.Date("2001-03-20")
+end_all <- as.Date("2023-01-01")
+
+args_long_FESX_dotcom <-
+    list(
+        MPOR = 3, factor = 1.37, quantile = .978,
+        lambda = .96, n_day = 400, burn_in = 200,
+        absolute = FALSE, liq_group = "PEQ01",
+        short = FALSE, mean = FALSE
+    )
+
+args_short_FESX_dotcom <-
+    list(
+        MPOR = 3, factor = 1.37, quantile = .978,
+        lambda = .96, n_day = 400, burn_in = 200,
+        absolute = FALSE, liq_group = "PEQ01",
+        short = TRUE, mean = FALSE
+    )
+
+args_long_FESX_start <-
+    list(
+        MPOR = 3, factor = 1.37, quantile = .978,
+        lambda = .96, n_day = 750, burn_in = 350,
+        absolute = FALSE, liq_group = "PEQ01",
+        short = TRUE, mean = FALSE
+    )
+
+args_short_FESX <-
+    list(
+        MPOR = 3, factor = 1.37, quantile = .978,
+        lambda = .96, n_day = 750, burn_in = 350,
+        absolute = FALSE, liq_group = "PEQ01",
+        short = TRUE, mean = TRUE
+    )
+
+fgbl_long <- calculate_margin(
+    product = "FGBL", start_all, end_all,
+    args = args_FGBL, steps = TRUE
+)
+
+fesx_short <- calculate_margin(
+    product = "FESX", start_all, end_all,
     args = args_short_FESX, steps = TRUE
 )
 
-df <- margin_baseline_long |>
-    left_join(margin_baseline_short, by = "DATE") |>
+df <- fesx_long |>
+    left_join(fesx_short, by = "DATE") |>
     select(DATE, RET_MPOR.x, MARGIN.x, MARGIN.y) |>
+    drop_na() |>
     rename(
         RET_MPOR_LONG = RET_MPOR.x,
         MARGIN_LONG = MARGIN.x, MARGIN_SHORT = MARGIN.y
     ) |>
     mutate(COLOR = case_when(
-        (lag(RET_MPOR_LONG, 0) < -MARGIN_LONG) | (lag(RET_MPOR_LONG, 0) > MARGIN_SHORT) ~ "red",
+        (lag(RET_MPOR_LONG, 3) < -MARGIN_LONG) | (lag(RET_MPOR_LONG, 3) > MARGIN_SHORT) ~ "red",
         TRUE ~ "black"
     ))
 
-long_FESX_reg |>
-    ggplot(aes(DATE, MARGIN * -1)) +
-    geom_line(color = "blue") +
-    geom_line(data = long_FESX_reg, color = "red")
-
+summary_stats(fesx_short, as.Date("2001-01-01"), as.Date("2020-12-31"))
 df |>
     ggplot(aes(x = DATE)) +
     geom_line(aes(y = MARGIN_LONG * -1)) +
     geom_line(aes(y = MARGIN_SHORT)) +
-    geom_jitter(aes(y = lag(RET_MPOR_LONG, 3)), color = df$COLOR) +
+    geom_jitter(aes(color = I(COLOR), y = lag(RET_MPOR_LONG, 3))) +
     scale_y_continuous(breaks = seq(-.2, .2, .05)) +
-    long |>
+    scale_color_identity()
+long |>
     ggplot(aes(DATE, MARGIN)) +
     geom_line()
+
 test |>
     filter(BUCKET == 1) |>
     slice(1:250) |>
     arrange((revalued)) |>
     filter(revalued < -0.0885) |>
     pull(revalued)
-
 
 tibble(NULL) |>
     ggplot(aes(x = DATE, y = MARGIN)) +
@@ -256,3 +293,24 @@ mean(x, na.rm = TRUE)
 
 
 x <- pmax(margin_baseline_long_3$MARGIN, margin_baseline_long_4$MARGIN, na.rm = TRUE)
+
+fgbl_long |>
+    mutate(color = ifelse(lag(RET_MPOR, 2) < -MARGIN, "red", "black")) |>
+    ggplot(aes(DATE, -MARGIN)) +
+    geom_line() +
+    geom_point(aes(y = lag(RET_MPOR, 2), color = I(color)))
+
+
+# over this plot, chart margin evolution and outliers ! --> Good graph for the appendix !
+master$returns |>
+    filter(INST == "FGBL") |>
+    ggplot(aes(DATE, LOG_RET)) +
+    geom_line() +
+    scale_x_date(
+        breaks = seq.Date(as.Date("2000-01-01"), as.Date("2023-01-01"), by = "1 year"),
+        labels = scales::label_date(format = "%Y")
+    ) +
+    annotate("rect", ymin = -.03, ymax = .03, xmin = start_tampering, xmax = end_tampering, alpha = .2, fill = "blue") +
+    annotate("rect", ymin = -.03, ymax = .03, xmin = start_eurodebtcrisis, xmax = end_eurodebtcrisis, alpha = .2, fill = "blue") +
+    annotate("rect", ymin = -.03, ymax = .03, xmin = start_fc, xmax = end_fc, alpha = .2, fill = "blue")
+theme(axis.text.x = element_text(angle = 90))

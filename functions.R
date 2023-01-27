@@ -2,7 +2,6 @@
 #' essential information for the calculation of margins is stored and properly
 #' formats it for further use in the below functions (instrument returns, stress period dates)
 #' @param path local path where excel sheet with returns is stored
-
 read_master <- function(path) {
     # load required packages
     library(readxl)
@@ -28,7 +27,6 @@ read_master <- function(path) {
 #' @param lambda decay factor
 #' @param mean indicates whether the EWMA volatility should be calculated using a mean (TRUE) or whether
 #' the mean is assumed to be zero (FALSE)
-
 ewma_vol <- function(returns, burn_in, lambda, mean = TRUE) {
     # load required packages
     library(zoo)
@@ -69,7 +67,6 @@ ewma_vol <- function(returns, burn_in, lambda, mean = TRUE) {
 #' @param returns numerical vector of a financial return series (from newest to oldest observation)
 #' @param burn_in amount of days considered for EWMA-mean calculation
 #' @param lambda decay factor
-
 ewma_mean <- function(returns, burn_in, lambda) {
     # load required packages
     library(zoo)
@@ -100,7 +97,6 @@ ewma_mean <- function(returns, burn_in, lambda) {
 #' @param args list with model parameters which are needed to calculate the margin
 #' MPOR (numeric), factor (numeric), quantile (numeric), lambda (numeric), n_day (numeric),
 #' burn_in (numeric), liq_group (character), short (boolean), mean (boolean)
-
 calculate_fhs_margin <- function(product, start, end, args, steps = FALSE) {
     # load package dependencies
     library(dplyr)
@@ -171,8 +167,6 @@ calculate_fhs_margin <- function(product, start, end, args, steps = FALSE) {
         mutate(deval = (LOG_RET_MPOR - lead(EWMA_MEAN, args$MPOR)) / lead(EWMA_VOL, args$MPOR))
 
     # calculate margin
-
-
     margin_vector <- runner(
         df,
         na_pad = TRUE,
@@ -199,7 +193,8 @@ calculate_fhs_margin <- function(product, start, end, args, steps = FALSE) {
 
     # append absolute value of margin to the df
     df <- df |>
-        mutate(MARGIN = abs(margin_vector))
+        mutate(MARGIN = abs(margin_vector)) |>
+        drop_na(MARGIN)
 
     # return output
     if (steps) {
@@ -219,7 +214,6 @@ calculate_fhs_margin <- function(product, start, end, args, steps = FALSE) {
 #' @param args list with model parameters which are needed to calculate the margin
 #' MPOR (numeric), factor (numeric), quantile (numeric), lambda (numeric), n_day (numeric),
 #' burn_in (numeric), liq_group (character), short (boolean), mean (boolean)
-
 calculate_sp_margin <- function(product, start, end, args) {
     # load required packages
     library(zoo)
@@ -285,7 +279,6 @@ calculate_sp_margin <- function(product, start, end, args) {
 #' should be displayed in the output df or not (set = TRUE for procyclicality metric calculations)
 #' @param unfloored_df if the fhs margin data frame was already computed, it can be specified here
 #' as this prevents the function from calculating the fhs margin again --> better performance
-
 calculate_margin <- function(product, start, end, args,
                              steps = FALSE, unfloored_df = NULL) {
     # load required packages
@@ -323,7 +316,6 @@ calculate_margin <- function(product, start, end, args,
 #' calculate_fhs_margin() or calculate_margin(). Steps must have been set to TRUE
 #' @param start Start date (DATE) of interval for which stats should be calculated
 #' @param end End date (DATE) of interval for which stats should be calculated
-
 summary_stats <- function(margin_df, start, end) {
     # load required packages
     library(tidyr)
@@ -415,16 +407,14 @@ summary_stats <- function(margin_df, start, end) {
 #' @param window window (in days) over which the test should be performed
 #' @param model_conf_level confidence level of the margin model that is tested
 #' @param test_conf_level quantile which must be surpassed to reject the KPF test
-
 kupiec_test <- function(margin_df, window, model_conf_level, test_conf_level) {
     # extract MPOR from margin_df
-    MPOR <- max(margin_df$MPOR)
+    MPOR <- max(margin_df$BUCKET)
 
     # lag returns to analyze number of breaches
     margin_df <- margin_df |>
         mutate(RET_MPOR = lag(RET_MPOR, MPOR))
 
-    x <- as.zoo(margin_df)
     # calculate vector for rolling kupiec_test statistics (T/F for each sub-window)
     test <- rollapply(
         fill = NA,
@@ -460,7 +450,6 @@ kupiec_test <- function(margin_df, window, model_conf_level, test_conf_level) {
 #' @param margin_df a margin data frame that was created by using the functions
 #' calculate_fhs_margin() or calculate_margin(). Steps must have been set to TRUE
 #' @param cap the value where the margin should be capped at
-
 cap_margin <- function(margin_df, cap) {
     margin_df <- margin_df |>
         mutate(MARGIN = ifelse(MARGIN > cap, cap, MARGIN))
@@ -472,7 +461,6 @@ cap_margin <- function(margin_df, cap) {
 #' calculate_fhs_margin() or calculate_margin(). Steps must have been set to TRUE
 #' @param buffer buffer to be added to the margin in %
 #' @param release margin above which the buffer should be released
-
 buffer_margin <- function(margin_df, buffer, release) {
     margin_df <- margin_df |>
         mutate(
@@ -487,7 +475,6 @@ buffer_margin <- function(margin_df, buffer, release) {
 #' calculate_fhs_margin() or calculate_margin(). Steps must have been set to TRUE
 #' @param n_day specifies the days over which the max margin change cannot go above "limit"
 #' @param limit the maximum permissible margin change over n days
-
 speed_limit <- function(margin_df, n_day, limit) {
     margin_df <- margin_df |>
         arrange(DATE)

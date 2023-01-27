@@ -1,19 +1,21 @@
-# MARGIN CALCULATIONS
+## Bachelor Thesis
 
 ---
 
-This repository hosts all raw-data and code used to produce the models, graphs and calculations in my Bachelor Thesis **Margin Procyclicality during Covid 19 - Drivers, 
-Impact and Solutions**
+This repository hosts all code used to produce the models, graphs and calculations in my Bachelor Thesis **Margin Procyclicality during Covid 19 - Drivers, Impact and Solutions**
 
+Last Edit: DATE
+Submission: DATE
 ---
 
 ### Description of Files
 
-- All functions needed to calculate Margins are contained in the file :link: ![*functions*](functions.R)
-- The files for each plot are located in the :link: ![*Plots*](plots) folder
-- All plots as .png files are located in  :link: ![*Plots/Output](plots/output)*
-- All procyclicality measures as reported in XXX are located in the file :link: ![*procyclicality_calculations.R*](procyclicality_calculations.R)
-- All other source data used can be found in :link: ![*Data*](data)
+- All proprietary functions used in the scripts are contained in :link: ![*functions*](functions.R)
+- The scripts for each plot are located in :link: ![*Plots*](Plots/)
+- All plots as .png files are located in  :link: ![*Plots/Output](Plots/Output)*
+- All calculated procyclicality stats as reported in Chapter XX are located in the files :link: ![*measures.csv*](measures_short.csv) and ![*measures.csv*](measures_long.csv)
+- All calculations performed to obtain the procyclicality stats are in the scripts :link: ![*procyclicality_calculations_long.r*](procyclicality_calculations_long.r) and ![*procyclicality_calculations_short.r*](procyclicality_calculations_short.r)
+- All raw data used is located on  :link: ![*OneDrive*](https://1drv.ms/u/s!AoQRAZtdS9u4iZYwkNuHxv9e582O_g?e=1WXJlr)
 
 ### Margin Calculation
 
@@ -92,10 +94,3 @@ Also, make sure that you have all relevant packages installed which are needed t
 - readxl
 -
 -
--
-
-### :rocket: Output Examples
-
-|   |   | |
-:-------------------------:|:-------------------------:|:-------------------------:
-![](Plots/Output/IMC_March.png)  |  ![](Plots/Output/baseline_vs_stress.png) |  ![](Plots/Output/ewma_1d.png) 
