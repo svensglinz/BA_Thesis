@@ -58,14 +58,13 @@ out <- imc |>
         plot.margin = margin(0, 0, 0, 0),
         legend.box.spacing = unit(10, "pt")
     ) +
-    scale_fill_grey(
-        start = .8, end = .5,
+    scale_fill_jama(
         labels = c("Initial Margin", "Variation Margin")
     )
 
 # save output
 ggsave("Plots/Output/IMC_boxplot.png",
-    plot = out, width = 8.33, height = 6.14,
+    plot = out, width = 8.33, height = 6.2,
     dpi = 350, unit = "cm"
 )
 

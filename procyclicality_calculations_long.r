@@ -185,12 +185,14 @@ for (lambda in lambda_loop) {
 
 write_csv(measures, "Data/procyclicality_calculations_fesx_long.csv")
 
-long_fesx_96 <- calculate_margin("FESX", start_regular, end_all, args = args_long_FESX)
-long_fesx_995 <- calculate_margin("FESX", start_regular, end_all, args = args_long_FESX)
 
-long_fesx_96 |>
-    ggplot(aes(DATE, MARGIN)) +
-    geom_line() +
-    geom_line(data = long_fesx_995, color = "red")
+# plausibility check of results!
+margin_test_90 <- calculate_margin("FESX", start_regular, end_all, args = args_long_FESX, steps = TRUE)
+margin_test_95 <- calculate_margin("FESX", start_regular, end_all, args = args_long_FESX, steps = TRUE)
+margin_test_99 <- calculate_margin("FESX", start_regular, end_all, args = args_long_FESX, steps = TRUE)
 
-mean(long_fesx_995$MARGIN)
+margin_test_90 |>
+    ggplot(aes(x = DATE, y = MARGIN)) +
+    geom_line(color = "blue") +
+    geom_line(data = margin_test_99, color = "red") +
+    geom_line(data = margin_test_95, color = "black")

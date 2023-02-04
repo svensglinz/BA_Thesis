@@ -19,7 +19,7 @@ font_add(
 )
 
 showtext_auto(enable = TRUE)
-showtext_opts(dpi = 300)
+showtext_opts(dpi = 600)
 
 # define parameters
 start_date <- as.Date("2005-01-01")
@@ -54,23 +54,37 @@ out <-
     caption = "Own Depiction | Data Source: Eurex Clearing AG, Bloomberg"
   ) +
   theme(
-    text = element_text(family = "lmroman"),
-    plot.title = element_text(size = 10, face = "bold"),
-    plot.caption = element_text(size = 8),
-    axis.text = element_text(size = 8),
-    plot.margin = margin(0, 0, 0, 0),
-    plot.subtitle = element_text(size = 7, face = "italic"),
+    text = element_text(family = "lmroman", colour = "#555555"),
+    legend.position = "bottom",
+    legend.key.width = unit(1.4, "cm"),
+    legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
+    legend.justification = .5,
+    plot.subtitle = element_text(size = 8),
+    plot.caption = element_text(size = 8, margin = margin(t = 5, 0, 0, 0)),
+    panel.border = element_rect(colour = "#999999", fill = "transparent"),
+    panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
+    panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
+    panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
     panel.grid.minor = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.major.y = element_line(
-      color = "darkgrey",
-      linetype = "dashed", size = .3
-    )
+    plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
+    legend.box.spacing = unit(-.2, "cm"),
+    axis.ticks = element_blank(),
+    axis.text = element_text(size = 6),
+    axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
+    axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
+    axis.title = element_text(size = 8),
+    plot.title = element_text(size = 10, face = "bold"),
+    legend.direction = "vertical",
+    legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
+    plot.margin = margin(5, 5, 5, 5),
+    legend.key = element_rect(fill = "transparent"),
+    strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
+    strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
   )
 
 # save output
 ggsave("Plots/Output/daily_returns_FESX.png",
   plot = out,
-  device = "png", dpi = 300, height = 6.32,
+  device = "png", dpi = 600, height = 6.32,
   width = 7.86, units = "cm",
 )
