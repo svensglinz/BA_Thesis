@@ -13,7 +13,7 @@ font_add(
 )
 
 showtext_auto(enable = TRUE)
-showtext_opts(dpi = 350)
+showtext_opts(dpi = 600)
 
 # set seed for replicability
 set.seed(7)
@@ -41,35 +41,43 @@ paths <- paths |>
     pivot_longer(-c(index, col), names_to = "values")
 
 # plot graph
-graph <-
-    paths |>
-    ggplot(aes(x = index, y = value, group = values, color = col)) +
-    geom_line() +
-    geom_vline(xintercept = 100) +
+graph <- paths |>
+    ggplot(aes(x = index, y = value, group = values, color = I(col))) +
+    geom_density(
+        aes(y = value, after_stat(density) * 1000 + 401),
+        inherit.aes = FALSE, linewidth = .3
+    ) +
+    geom_line(linewidth = .3) +
+    geom_vline(xintercept = 100, linewidth = .3) +
     geom_segment(aes(
         y = paths$value[paths$index == 100][1], x = 100,
         yend = paths$value[paths$index == 100][1], xend = 400
-    ), color = "#838383") +
-    geom_vline(xintercept = 200, linetype = 2) +
-    geom_vline(xintercept = 300, linetype = 2) +
+    ), color = "#838383", linewidth = .3) +
+    geom_vline(xintercept = 200, linetype = 2, linewidth = .3) +
+    geom_vline(xintercept = 300, linetype = 2, linewidth = .3) +
     labs(
         x = NULL,
         y = NULL,
         title = "Concept of Initial Margin",
         caption = "Own Depiction"
     ) +
-    theme_minimal() +
     scale_y_continuous(breaks = seq(from = 50, to = 140, by = 10)) +
     theme(
-        text = element_text(family = "lmroman"),
-        panel.grid = element_blank(),
-        panel.background = element_rect(color = "black"),
-        legend.position = "right",
+        text = element_text(family = "lmroman", colour = "#555555"),
+        panel.border = element_rect(colour = "#999999", fill = "transparent"),
+        panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
+        panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.minor = element_blank(),
+        plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
+        axis.ticks = element_blank(),
+        axis.text = element_text(size = 6),
+        axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
+        axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
         axis.title = element_text(size = 8),
         plot.title = element_text(size = 10, face = "bold"),
-        axis.text = element_text(size = 8),
-        plot.caption = element_text(size = 8),
-        plot.margin = margin(t = 0, b = 0, l = 0, r = 2, "cm")
+        plot.margin = margin(.1, .1, .1, r = 1.8, unit = "cm"),
+        plot.caption = element_text(size = 8)
     ) +
     scale_x_discrete(
         breaks = c(1, 100, 200, 300, 350, 400),
@@ -79,41 +87,10 @@ graph <-
             "350" = "...", "400" = "t+n"
         )
     ) +
-    scale_color_identity()
-
-# create density plot (density of all points of grey line, not only end path
-# for "more normal-dist looking" density)
-dens <- paths |>
-    filter(col == "darkgrey") |>
-    ggplot(aes(x = value)) +
-    geom_density() +
-    theme(
-        panel.grid = element_blank(),
-        panel.background = element_rect(
-            fill = "transparent",
-            color = "transparent"
-        ),
-        plot.background = element_rect(
-            fill = "transparent",
-            color = "transparent"
-        ),
-        axis.line = element_blank(),
-        axis.ticks = element_blank(),
-        axis.text = element_blank(),
-        plot.margin = margin(r = 0, l = 0, b = -1, t = -1, unit = "cm"),
-        axis.title = element_blank()
-    ) +
-    coord_flip()
-
-# assemble two plots
-out <-
-    graph + inset_element(dens,
-        l = .99, b = .2, r = 1.2,
-        t = .8, align_to = "panel"
-    )
+    coord_cartesian(clip = "off", xlim = c(0, 400))
 
 # save output
 ggsave("Plots/Output/IM_graph.png",
-    plot = out, device = "png",
-    dpi = 350, width = 12.89, height = 6.23, unit = "cm"
+    plot = graph,
+    dpi = 600, width = 12.89, height = 6.23, unit = "cm"
 )

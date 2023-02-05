@@ -69,7 +69,7 @@ out <-
     geom_line() +
     geom_vline(
         xintercept = line_date,
-        color = "#515151", size = 2, alpha = .2
+        color = "#515151", linewidth = 2, alpha = .2
     ) +
     scale_y_continuous(labels = scales::percent_format()) +
     scale_x_date(
@@ -86,7 +86,6 @@ out <-
     ) +
     theme(
         text = element_text(family = "lmroman", colour = "#555555"),
-        legend.position = "right",
         plot.subtitle = element_text(family = "sans", face = "italic", size = 7),
         plot.caption = element_text(size = 8),
         legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
@@ -97,19 +96,13 @@ out <-
         panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
         panel.grid.minor.x = element_blank(),
         plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0),
-        legend.box.spacing = unit(-.2, "cm"),
-        legend.box.margin = margin(0, 0, 0, 0),
         axis.ticks = element_blank(),
         axis.text = element_text(size = 6),
         axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
         axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
         axis.title = element_text(size = 8),
         plot.title = element_text(size = 10, face = "bold"),
-        legend.title = element_text(size = 8, family = "sans", margin = margin(b = -5, 0, 0, 0)),
-        legend.direction = "vertical",
-        legend.text = element_text(size = 8, margin = margin(l = -6, 0, 0, 0)),
         plot.margin = margin(5, 5, 5, 5),
-        legend.key = element_rect(fill = "transparent"),
         strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
         strip.text = element_text(size = 6, margin = margin(t = 2, b = 2, 0, 0))
     ) +

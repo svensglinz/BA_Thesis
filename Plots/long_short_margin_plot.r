@@ -127,7 +127,6 @@ a <- fesx_margin |>
         panel.grid.minor = element_blank(),
         plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
         legend.box.spacing = unit(-.2, "cm"),
-        # legend.box.margin = margin(0, 0, 0, 0),
         axis.ticks = element_blank(),
         axis.text = element_text(size = 6),
         axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
@@ -138,8 +137,6 @@ a <- fesx_margin |>
         legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
         plot.margin = margin(5, 5, 5, 5),
         legend.key = element_rect(fill = "transparent"),
-        strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
-        strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
     ) +
     coord_cartesian(xlim = c(start_all, end_all), clip = "off")
 
@@ -156,6 +153,14 @@ fesx_margin |>
     geom_point(
         aes(y = lag(RET_MPOR, 3), size = I(SIZE), shape = "lagged 3-day returns"),
         position = position_jitter(), color = fesx_margin$COLOR
+    ) +
+    # add invisible point for "Margin breach" legend element
+    geom_point(
+        aes(
+            y = min(fesx_margin$MARGIN_LONG), x = min(fesx_margin$DATE),
+            alpha = "Margin breach"
+        ),
+        size = 0
     ) +
     labs(
         x = NULL,
@@ -198,21 +203,27 @@ fesx_margin |>
         legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
         plot.margin = margin(5, 5, 5, 5),
         legend.key = element_rect(fill = "transparent"),
-        strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
-        strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
     ) +
-    ggsci::scale_color_jama() +
-    # scale_color_manual(values = c("Long" = "#374E55FF", "Short" = "#80796BFF")) +
+    ggsci::scale_color_jama(
+        breaks = c("lagged 3-day returns", "Margin breach", "Long", "Short")
+    ) +
     guides(
+        shape = guide_legend(
+            order = 1,
+            label.position = "top", title = NULL,
+            override.aes = list(size = 2)
+        ),
         color = guide_legend(
+            order = 3,
             label.position = "top", title = NULL,
             override.aes = list(linewidth = 1.5)
         ),
-        shape = guide_legend(
+        alpha = guide_legend(
+            order = 2,
             label.position = "top", title = NULL,
-            override.aes = list(size = 2)
+            override.aes = list(color = "red", alpha = 1, size = 2)
         )
     )
 
 # save chart
-ggsave("Plots/Output/recent.png", width = 16.3, height = 9.5, units = "cm", dpi = 600)
+ggsave("Plots/Output/long_short_margin.png", width = 16.3, height = 9.5, units = "cm", dpi = 600)
