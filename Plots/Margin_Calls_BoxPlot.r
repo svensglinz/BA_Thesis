@@ -14,7 +14,7 @@ font_add(
 )
 
 showtext_auto(enable = TRUE)
-showtext_opts(dpi = 350)
+showtext_opts(dpi = 600)
 
 # define parameters
 start_date <- as.Date("2020-01-01")
@@ -27,7 +27,7 @@ imc <-
     )
 
 # modify and clean data
-out <- imc |>
+imc |>
     filter(between(FACT_DATE, start_date, end_date)) |>
     mutate(MONTH = format(FACT_DATE, "%b")) |>
     ggplot(
@@ -36,27 +36,37 @@ out <- imc |>
             group = interaction(MONTH, TYPE), fill = TYPE
         )
     ) +
-    geom_boxplot(outlier.size = .5, fatten = .8) +
+    geom_boxplot(outlier.size = .5, fatten = .8, linewidth = .3) +
     labs(
         x = NULL,
         y = NULL,
-        title = "Volume of Daily IMC (2020)",
-        fill = NULL,
-        caption = "Own Depiction | Source: Eurex Clearing AG"
+        title = "Volume of Daily IMC (Bio. EUR, 2020)",
+        fill = NULL
     ) +
     scale_y_continuous(breaks = seq(0, 10, 2)) +
-    theme_bw() +
     theme(
-        text = element_text(family = "lmroman"),
-        plot.title = element_text(size = 10, face = "bold"),
-        plot.caption = element_text(size = 8, margin = margin(t = -.1, b = 0, r = 0, l = 0)),
-        panel.grid = element_blank(),
-        legend.key.size = unit(.3, "cm"),
-        legend.text = element_text(size = 8),
+        text = element_text(family = "lmroman", colour = "#555555"),
         legend.position = "bottom",
-        legend.margin = margin(t = 0, b = .2, l = 0, r = 0, unit = "cm"),
-        plot.margin = margin(0, 0, 0, 0),
-        legend.box.spacing = unit(10, "pt")
+        legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
+        legend.justification = .5,
+        legend.key.size = unit(.3, "cm"),
+        plot.subtitle = element_text(size = 8),
+        plot.caption = element_text(size = 8, margin = margin(t = 4, 0, 0, 0)),
+        panel.border = element_rect(colour = "#999999", fill = "transparent"),
+        panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
+        panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.minor = element_blank(),
+        plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
+        legend.box.spacing = unit(0, "cm"),
+        axis.ticks = element_blank(),
+        axis.text = element_text(size = 6, margin = margin(0, 0, 0, 0)),
+        axis.title = element_text(size = 8),
+        plot.title = element_text(size = 10, face = "bold"),
+        legend.direction = "horizontal",
+        legend.text = element_text(size = 8, margin = margin(b = 0, 0, 0, 0)),
+        plot.margin = margin(5, 5, 5, 5),
+        legend.key = element_rect(fill = "transparent"),
     ) +
     scale_fill_jama(
         labels = c("Initial Margin", "Variation Margin")
@@ -64,8 +74,8 @@ out <- imc |>
 
 # save output
 ggsave("Plots/Output/IMC_boxplot.png",
-    plot = out, width = 8.33, height = 6.2,
-    dpi = 350, unit = "cm"
+    plot = last_plot(), width = 8.33, height = 6.2,
+    dpi = 600, unit = "cm"
 )
 
 

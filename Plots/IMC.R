@@ -28,8 +28,8 @@ imc <-
     )
 
 # plot graph
-out <-
-    imc |>
+
+imc |>
     mutate(DAY = day(FACT_DATE)) |>
     filter(between(FACT_DATE, start_date, end_date)) |>
     ggplot(aes(x = as.factor(DAY), y = N_CALLS, fill = TYPE)) +
@@ -45,8 +45,7 @@ out <-
         title = "Number of IMC (March 2020)",
         x = NULL,
         y = NULL,
-        fill = NULL,
-        caption = "Own Depiction | Data Source: Eurex Clearing AG"
+        fill = NULL
     ) +
     theme(
         text = element_text(family = "lmroman", colour = "#555555"),
@@ -62,19 +61,15 @@ out <-
         panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
         panel.grid.minor = element_blank(),
         plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
-        legend.box.spacing = unit(-.2, "cm"),
+        legend.box.spacing = unit(0, "cm"),
         axis.ticks = element_blank(),
-        axis.text = element_text(size = 6),
-        axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
-        axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
+        axis.text = element_text(size = 6, margin = margin(0, 0, 0, 0)),
         axis.title = element_text(size = 8),
         plot.title = element_text(size = 10, face = "bold"),
         legend.direction = "horizontal",
-        legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
+        legend.text = element_text(size = 8, margin = margin(b = 0, 0, 0, 0)),
         plot.margin = margin(5, 5, 5, 5),
         legend.key = element_rect(fill = "transparent"),
-        strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
-        strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
     ) +
     scale_fill_jama(
         labels = c("Initial Margin", "Variation Margin")
@@ -82,6 +77,6 @@ out <-
 
 # save output
 ggsave("Plots/Output/IMC_March.png",
-    plot = out,
+    plot = last_plot(),
     dpi = 600, width = 7.6, height = 6.2, units = "cm"
 )

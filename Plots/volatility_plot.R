@@ -35,17 +35,15 @@ start_date <- as.Date("2020-01-01")
 end_date <- as.Date("2020-12-31")
 
 # plot graph
-out <-
-  fesx |>
+fesx |>
   ggplot(aes(x = DATE, y = VOL, color = INST)) +
   geom_line(show.legend = FALSE) +
   labs(
-    title = "1d EWMA Volatility, 2020 (Log-Returns)",
-    subtitle = TeX("$\\lambda$ = .95, burn-in = 750", italic = TRUE),
+    title = "1d Log-Ret EWMA Volatility (2020)",
+    subtitle = TeX("$\\lambda$ = 0.96, burn-in = 750"),
     y = NULL,
     x = NULL,
-    color = NULL,
-    caption = "Own Depiction | Data Source: Eurex Clearing AG"
+    color = NULL
   ) +
   scale_y_continuous(
     limits = c(0, 0.04),
@@ -64,7 +62,7 @@ out <-
   ) +
   theme(
     text = element_text(family = "lmroman", colour = "#555555"),
-    plot.subtitle = element_text(size = 8, family = "sans"),
+    plot.subtitle = element_text(size = 7, family = "times", margin = margin(0, 0, 0, b = 2)),
     plot.caption = element_text(size = 8, margin = margin(t = 8, 0, 0, 0)),
     panel.border = element_rect(colour = "#999999", fill = "transparent"),
     panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
@@ -77,13 +75,13 @@ out <-
     axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
     axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
     axis.title = element_text(size = 8),
-    plot.title = element_text(size = 10, face = "bold"),
+    plot.title = element_text(size = 10, face = "bold", margin = margin(b = 1, 0, 0, 0)),
     plot.margin = margin(5, 5, 5, 5),
   ) +
   scale_color_jama()
 
 # save output
 ggsave("Plots/Output/ewma_1d.png",
-  plot = out,
-  dpi = 600, width = 7.86, height = 6.33, unit = "cm"
+  plot = last_plot(),
+  dpi = 600, width = 7.86, height = 5, unit = "cm"
 )

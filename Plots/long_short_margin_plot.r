@@ -81,7 +81,10 @@ fesx_margin <- read_csv("fesx_margin.csv")
 
 # assemble plot FESX long
 fesx_margin |>
-    mutate(RET_MPOR = ifelse(RET_MPOR < max(-fesx_margin$MARGIN_LONG), RET_MPOR, NA)) |>
+    mutate(
+        RET_MPOR = ifelse(RET_MPOR < max(-fesx_margin$MARGIN_LONG), RET_MPOR, NA),
+        SIZE = ifelse(SIZE == .5, .3, SIZE)
+    ) |>
     ggplot(aes(x = DATE, y = MARGIN_LONG * -1)) +
     geom_line(linewidth = .3) +
     geom_point(
@@ -147,13 +150,16 @@ fesx_margin |>
     )
 
 # save chart
-ggsave("Plots/Output/long_short_margin_with_APC.png",
+ggsave("Plots/Output/margin_long_with_APC.png",
     plot = last_plot(), width = 16.3, height = 6, units = "cm", dpi = 600
 )
 
 # assemble plot FESX Short
 fesx_margin |>
-    mutate(RET_MPOR = ifelse(RET_MPOR > min(fesx_margin$MARGIN_SHORT), RET_MPOR, NA)) |>
+    mutate(
+        RET_MPOR = ifelse(RET_MPOR > min(fesx_margin$MARGIN_SHORT), RET_MPOR, NA),
+        SIZE = ifelse(SIZE == .5, .3, SIZE)
+    ) |>
     ggplot(aes(x = DATE, y = MARGIN_SHORT)) +
     geom_line(linewidth = .3) +
     geom_point(
