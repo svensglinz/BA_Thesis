@@ -26,41 +26,38 @@ showtext_opts(dpi = 600)
 # Long FESX
 ##############
 
-# load data frame 
+# load data frame
 measures <- read_csv("Data/procyclicality_calculations_fesx_long.csv")
 
 # generate plots for baseline / APC tool combination for 30d & Peak-to-through Procylcicality
 plot_df <- measures |>
     filter(period == "all", type %in% c("costs", "max_30d", "peak_to_through", "kpf")) |>
     pivot_wider(names_from = type, values_from = values) |>
-    pivot_longer(c(peak_to_through, max_30d), names_to = "measures", values_to = "values") |> 
+    pivot_longer(c(peak_to_through, max_30d), names_to = "measures", values_to = "values") |>
     mutate(label = ifelse(lambda == .91, model, NA_character_))
 
 for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap", "cap_floor"))) {
-    
     lambda_breach <- plot_df |>
         filter(kpf == 0, model == i) |>
         select(model, lambda) |>
-        unique() |> 
+        unique() |>
         group_by(model) |>
         summarize(lambda = paste(lambda, collapse = ", ")) |>
         arrange(model)
-    
+
     # ensure that all models are inside the data frame (even if no backtesting breaches)
     lambda_breach <- tibble(model = i[order(i)]) |>
         left_join(lambda_breach, by = c("model")) |>
         replace_na(list(lambda = "None"))
 
     # control for multiple elements in i (currently cap and speed)
-    if (length(i) > 1){
-
+    if (length(i) > 1) {
         lambda_breach <- glue::glue("{lambda_breach$lambda} ({lambda_breach$model})")
         lambda_breach <- paste(lambda_breach, collapse = ", ")
-
     } else {
-        lambda_breach  <- lambda_breach$lambda
+        lambda_breach <- lambda_breach$lambda
     }
-    
+
 
     subtitle <- ifelse(nchar(lambda_breach) == 0,
         TeX("Backtesting not passed: None    |     $\\Delta$ = Baseline Model Specification ($\\lambda$ = 0.96)"),
@@ -83,62 +80,65 @@ for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap"
             shape = 24, color = "red", show.legend = FALSE
         ) +
         geom_text_repel(
-            aes(label = label), alpha = 1, min.segment.length = unit(2, "cm"),
+            aes(label = label),
+            alpha = 1, min.segment.length = unit(2, "cm"),
             show.legend = FALSE, size = 2.5
         ) +
         scale_x_continuous(breaks = scales::extended_breaks(n = 6)) +
         labs(
             title = paste("Procyclicality Evaluation:", i, "(FESX Long)", sep = " "),
             x = "Avg. Costs (% of Notional)",
-            y = "Procyclicality", 
+            y = "Procyclicality",
             subtitle = subtitle
         ) +
         scale_alpha_continuous(breaks = c(seq(.9, .99, .02))) +
         theme(
-            text = element_text(family= "lmroman", colour = "#555555"),
+            text = element_text(family = "lmroman", colour = "#555555"),
             legend.position = "right",
             plot.subtitle = element_text(family = "sans", face = "italic", size = 7),
             plot.caption = element_text(size = 8),
-            legend.background = element_rect(fill="transparent", colour = "#cccccc", linewidth = 0),
+            legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
             legend.justification = .5,
-            panel.border = element_rect(colour="#999999", fill = "transparent"),
-            panel.background = element_rect(fill="#FFFFFF", colour="#999999", linewidth = 0),
+            panel.border = element_rect(colour = "#999999", fill = "transparent"),
+            panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
             panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
             panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
             panel.grid.minor.x = element_blank(),
-            plot.background = element_rect(fill = "#F9F9F9", colour="#CCCCCC", linewidth = 0),
-            legend.box.spacing = unit(-.2, "cm"), 
+            plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0),
+            legend.box.spacing = unit(-.2, "cm"),
             legend.box.margin = margin(0, 0, 0, 0),
             axis.ticks = element_blank(),
             axis.text = element_text(size = 6),
             axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
             axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
             axis.title = element_text(size = 8),
-            plot.title = element_text(size = 10, face = "bold"), 
+            plot.title = element_text(size = 10, face = "bold"),
             legend.title = element_text(size = 8, family = "sans", margin = margin(b = -5, 0, 0, 0)),
             legend.direction = "vertical",
             legend.text = element_text(size = 8, margin = margin(l = -6, 0, 0, 0)),
             plot.margin = margin(5, 5, 5, 5),
             legend.key = element_rect(fill = "transparent"),
-            strip.background = element_rect(fill="#FFFFFF", color = "#808080", linewidth = 0.5),
+            strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
             strip.text = element_text(size = 8, margin = margin(t = 2, b = 2, 0, 0))
-        ) + 
+        ) +
         guides(
             color = "none",
             alpha = guide_legend(
-                title = expression(lambda), 
-                title.hjust = .6)) +
+                title = expression(lambda),
+                title.hjust = .6
+            )
+        ) +
         facet_wrap(~measures, scales = "free_y") +
-            scale_color_jama() +
-            scale_fill_jama()
-        
+        scale_color_jama() +
+        scale_fill_jama()
+
     ggsave(
         paste0("Plots/Output/", i[1], ".png"), last_plot(),
         width = 16, height = 7, unit = "cm", dpi = 600
     )
 }
 
-# Comparison of APC tools 
+# Comparison of APC tools
 baseline_values <- measures |>
     filter(period == "all", model == "baseline" & lambda == .96, type %in% c("max_30d", "peak_to_through", "costs")) |>
     pivot_wider(values_from = values, names_from = type)
@@ -150,29 +150,29 @@ plot_df <- measures |>
     filter(lambda == .96 | (model == "baseline" & lambda == .995)) |>
     mutate(
         label = case_when(
-        lambda == .995 ~ "~lambda == .995", 
-        lambda == .96 & model == "baseline" ~ "~lambda == .96",
-        TRUE ~ model
+            lambda == .995 ~ "~lambda == .995",
+            lambda == .96 & model == "baseline" ~ "~lambda == .96",
+            TRUE ~ model
         )
-    )  |> 
+    ) |>
     mutate(
         x_segment = baseline_values$costs,
         y_segment = case_when(
-            measures == "peak_to_through" ~ baseline_values$peak_to_through, 
-            measures == "max_30d" ~ baseline_values$max_30d 
+            measures == "peak_to_through" ~ baseline_values$peak_to_through,
+            measures == "max_30d" ~ baseline_values$max_30d
         )
     )
 
 plot_df |>
     ggplot(aes(x = round(costs * 100, 4), y = values, color = model)) +
     geom_point(show.legend = FALSE) +
-    geom_text_repel(force = 10, force_pull = 10, nudge_y = -.1,size = 2.5, aes(label = label), parse = TRUE, show.legend = FALSE) +
+    geom_text_repel(force = 10, force_pull = 10, nudge_y = -.1, size = 2.5, aes(label = label), parse = TRUE, show.legend = FALSE) +
     geom_segment(
         data = plot_df |> filter(!(lambda == .96 & model == "baseline")),
-        aes( 
+        aes(
             x = x_segment * 100, y = y_segment,
-            xend = costs * 100 - 6 * (costs -0.0812), yend = ifelse(model == "speed" & measures == "peak_to_through", values, values + 0.1)
-        ), show.legend = FALSE, arrow = arrow(length = unit(.13, "cm")), 
+            xend = costs * 100 - 6 * (costs - 0.0812), yend = ifelse(model == "speed" & measures == "peak_to_through", values, values + 0.1)
+        ), show.legend = FALSE, arrow = arrow(length = unit(.13, "cm")),
         alpha = .5, linewidth = .3
     ) +
     scale_x_continuous(
@@ -182,35 +182,35 @@ plot_df |>
         title = "Comparison of APC Tools (FESX Long)",
         subtitle = TeX("Baseline Specification ($\\lambda$ = 0.96) unless otherwise indicated"),
         x = "Avg. Costs (% of Notional)",
-        y = "Procyclicality", 
+        y = "Procyclicality",
         color = NULL
     ) +
     scale_alpha_continuous(
         breaks = c(seq(.9, .99, .02))
     ) +
     theme(
-        text = element_text(family= "lmroman", colour = "#555555"),
+        text = element_text(family = "lmroman", colour = "#555555"),
         legend.position = "right",
-        legend.background = element_rect(fill="transparent", colour = "#cccccc", linewidth = 0),
+        legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
         legend.justification = .5,
-        panel.border = element_rect(colour="#999999", fill = "transparent"),
-        panel.background = element_rect(fill="#FFFFFF", colour="#999999", linewidth = 0),
+        panel.border = element_rect(colour = "#999999", fill = "transparent"),
+        panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
         panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
         panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
         panel.grid.minor = element_blank(),
-        plot.background = element_rect(fill = "#F9F9F9", colour="#CCCCCC", linewidth = 0, linetype = 1),
-        legend.box.spacing = unit(-.2, "cm"), 
+        plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
+        legend.box.spacing = unit(-.2, "cm"),
         legend.box.margin = margin(0, 0, 0, 0),
         axis.ticks = element_blank(),
         axis.text = element_text(size = 6),
         axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
         axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
         axis.title = element_text(size = 8),
-        plot.title = element_text(size = 10, face = "bold"), 
+        plot.title = element_text(size = 10, face = "bold"),
         plot.subtitle = element_text(size = 8, family = "times"),
         plot.margin = margin(5, 5, 5, 5),
     ) +
-    facet_wrap(~measures, scales = "free_y") + 
+    facet_wrap(~measures, scales = "free_y") +
     scale_color_jama()
 
 ggsave(
@@ -220,7 +220,7 @@ ggsave(
 
 # plot with tail-behavior analysis (stress periods)
 plot_df <- measures |>
-    filter(type %in% c("avg_ltm", "max_ltm", "n_breaches"), period != "all") 
+    filter(type %in% c("avg_ltm", "max_ltm", "n_breaches"), period != "all")
 
 plot_df |>
     ggplot(aes(x = lambda, y = values, color = model, group = model)) +
@@ -241,50 +241,49 @@ plot_df |>
     ) +
     labs(
         title = "Loss to Margin and Breaches - Stress Periods (FESX Long)",
-        subtitle = TeX("Minimal random noise added to data to avoid overlapping lines | Grey Line = Baseline Calibration ($\\lambda$ = 0.96)"), 
-        x = expression(lambda), 
+        subtitle = TeX("Minimal random noise added to data to avoid overlapping lines | Grey Line = Baseline Calibration ($\\lambda$ = 0.96)"),
+        x = expression(lambda),
         y = NULL
     ) +
     geom_vline(xintercept = .96, linetype = "dashed", color = "darkgrey") +
     facet_grid2(period ~ type, scales = "free", independent = "y") +
     theme(
-            text = element_text(family= "lmroman", colour = "#555555"),
-            legend.position = "bottom",
-            legend.key.width = unit(1.4, "cm"),
-            legend.background = element_rect(fill="transparent", colour = "#cccccc", linewidth = 0),
-            legend.justification = .5,
-            plot.caption = element_text(size = 8, margin = margin(0, 0, 0, 0)),
-            panel.border = element_rect(colour="#999999", fill = "transparent"),
-            panel.background = element_rect(fill="#FFFFFF", colour="#999999", linewidth = 0),
-            panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.minor = element_blank(),
-            plot.background = element_rect(fill = "#F9F9F9", colour="#CCCCCC", linewidth = 0, linetype = 1),
-            legend.box.spacing = unit(-.2, "cm"), 
-            axis.ticks = element_blank(),
-            axis.text = element_text(size = 6),
-            axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
-            axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
-            axis.title.x = element_text(family = "times"),
-            axis.title = element_text(size = 8),
-            plot.title = element_text(size = 10, face = "bold"), 
-            plot.subtitle = element_text(size = 8, family = "times"),
-            legend.direction = "vertical",
-            legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
-            plot.margin = margin(5, 5, 5, 5),
-            legend.key = element_rect(fill = "transparent"),
-            strip.background = element_rect(fill="#FFFFFF", color = "#808080", linewidth = 0.5),
-            strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
-        ) +
-    guides(color = guide_legend(label.position = "top", title = NULL, nrow = 1)
+        text = element_text(family = "lmroman", colour = "#555555"),
+        legend.position = "bottom",
+        legend.key.width = unit(1.4, "cm"),
+        legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
+        legend.justification = .5,
+        plot.caption = element_text(size = 8, margin = margin(0, 0, 0, 0)),
+        panel.border = element_rect(colour = "#999999", fill = "transparent"),
+        panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
+        panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.minor = element_blank(),
+        plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
+        legend.box.spacing = unit(-.2, "cm"),
+        axis.ticks = element_blank(),
+        axis.text = element_text(size = 6),
+        axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
+        axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
+        axis.title.x = element_text(family = "times"),
+        axis.title = element_text(size = 8),
+        plot.title = element_text(size = 10, face = "bold"),
+        plot.subtitle = element_text(size = 8, family = "times"),
+        legend.direction = "vertical",
+        legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
+        plot.margin = margin(5, 5, 5, 5),
+        legend.key = element_rect(fill = "transparent"),
+        strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
+        strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
     ) +
+    guides(color = guide_legend(label.position = "top", title = NULL, nrow = 1)) +
     scale_color_jama()
 
 ggsave("Plots/Output/tail_risk_stress_periods_long.png", last_plot(), width = 16, height = 10, units = "cm", dpi = 600)
 
-# chart only for entire time 
+# chart only for entire time
 plot_df <- measures |>
-    filter(type %in% c("avg_ltm", "max_ltm", "n_breaches"), period  == "all") 
+    filter(type %in% c("avg_ltm", "max_ltm", "n_breaches"), period == "all")
 
 plot_df |>
     ggplot(aes(x = lambda, y = values, color = model, group = model)) +
@@ -295,42 +294,41 @@ plot_df |>
     labs(
         title = "Loss to Margin and Number of Breaches (FESX Long)",
         subtitle = TeX("Minimal random noise added to data to avoid overlapping lines | Grey Line = Baseline Calibration ($\\lambda$ = 0.96)"),
-        x = expression(lambda), 
+        x = expression(lambda),
         y = NULL
     ) +
     geom_vline(xintercept = .96, linetype = "dashed", color = "darkgrey") +
-    facet_wrap(~ type, scales = "free") +
+    facet_wrap(~type, scales = "free") +
     theme(
-            text = element_text(family= "lmroman", colour = "#555555"),
-            legend.position = "bottom",
-            legend.key.width = unit(1.4, "cm"),
-            legend.background = element_rect(fill="transparent", colour = "#cccccc", linewidth = 0),
-            legend.justification = .5,
-            plot.subtitle = element_text(size = 8, family = "times"),
-            axis.title.x = element_text(family = "times"), 
-            plot.caption = element_text(size = 8, margin = margin(0, 0, 0, 0)),
-            panel.border = element_rect(colour="#999999", fill = "transparent"),
-            panel.background = element_rect(fill="#FFFFFF", colour="#999999", linewidth = 0),
-            panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.minor = element_blank(),
-            plot.background = element_rect(fill = "#F9F9F9", colour="#CCCCCC", linewidth = 0, linetype = 1),
-            legend.box.spacing = unit(-.2, "cm"), 
-            axis.ticks = element_blank(),
-            axis.text = element_text(size = 6),
-            axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
-            axis.text.x = element_text(margin = margin(0, 0, 0, 0), family = ""),
-            axis.title = element_text(size = 8),
-            plot.title = element_text(size = 10, face = "bold"), 
-            legend.direction = "vertical",
-            legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
-            plot.margin = margin(5, 5, 5, 5),
-            legend.key = element_rect(fill = "transparent"),
-            strip.background = element_rect(fill="#FFFFFF", color = "#808080", linewidth = 0.5),
-            strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
-        ) +
-    guides(color = guide_legend(label.position = "top", title = NULL, nrow = 1)
+        text = element_text(family = "lmroman", colour = "#555555"),
+        legend.position = "bottom",
+        legend.key.width = unit(1.4, "cm"),
+        legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
+        legend.justification = .5,
+        plot.subtitle = element_text(size = 8, family = "times"),
+        axis.title.x = element_text(family = "times"),
+        plot.caption = element_text(size = 8, margin = margin(0, 0, 0, 0)),
+        panel.border = element_rect(colour = "#999999", fill = "transparent"),
+        panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
+        panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.minor = element_blank(),
+        plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
+        legend.box.spacing = unit(-.2, "cm"),
+        axis.ticks = element_blank(),
+        axis.text = element_text(size = 6),
+        axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
+        axis.text.x = element_text(margin = margin(0, 0, 0, 0), family = ""),
+        axis.title = element_text(size = 8),
+        plot.title = element_text(size = 10, face = "bold"),
+        legend.direction = "vertical",
+        legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
+        plot.margin = margin(5, 5, 5, 5),
+        legend.key = element_rect(fill = "transparent"),
+        strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
+        strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
     ) +
+    guides(color = guide_legend(label.position = "top", title = NULL, nrow = 1)) +
     scale_color_jama()
 
 ggsave("Plots/Output/tail_risk_total_long.png", last_plot(), width = 16, height = 7, units = "cm", dpi = 600)
@@ -343,21 +341,35 @@ ggsave("Plots/Output/tail_risk_total_long.png", last_plot(), width = 16, height 
 # generate plots for baseline / APC tool combination for 30d & Peak-to-through Procylcicality
 measures <- read_csv("Data/procyclicality_calculations_fesx_short.csv")
 
+# generate plots for baseline / APC tool combination for 30d & Peak-to-through Procylcicality
 plot_df <- measures |>
     filter(period == "all", type %in% c("costs", "max_30d", "peak_to_through", "kpf")) |>
     pivot_wider(names_from = type, values_from = values) |>
-    pivot_longer(c(peak_to_through, max_30d), names_to = "measures", values_to = "values") |> 
+    pivot_longer(c(peak_to_through, max_30d), names_to = "measures", values_to = "values") |>
     mutate(label = ifelse(lambda == .91, model, NA_character_))
 
-for (i in c("cap", "speed", "baseline", "floor", "buffer", "cap_floor", "speed_floor")) {
-    
+for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap", "cap_floor"))) {
     lambda_breach <- plot_df |>
         filter(kpf == 0, model == i) |>
         select(model, lambda) |>
         unique() |>
-        pull(lambda)
-    
-    lambda_breach  <- paste(lambda_breach, collapse = ", ")
+        group_by(model) |>
+        summarize(lambda = paste(lambda, collapse = ", ")) |>
+        arrange(model)
+
+    # ensure that all models are inside the data frame (even if no backtesting breaches)
+    lambda_breach <- tibble(model = i[order(i)]) |>
+        left_join(lambda_breach, by = c("model")) |>
+        replace_na(list(lambda = "None"))
+
+    # control for multiple elements in i (currently cap and speed)
+    if (length(i) > 1) {
+        lambda_breach <- glue::glue("{lambda_breach$lambda} ({lambda_breach$model})")
+        lambda_breach <- paste(lambda_breach, collapse = ", ")
+    } else {
+        lambda_breach <- lambda_breach$lambda
+    }
+
 
     subtitle <- ifelse(nchar(lambda_breach) == 0,
         TeX("Backtesting not passed: None    |     $\\Delta$ = Baseline Model Specification ($\\lambda$ = 0.96)"),
@@ -377,60 +389,63 @@ for (i in c("cap", "speed", "baseline", "floor", "buffer", "cap_floor", "speed_f
         geom_point(
             aes(fill = model),
             data = plot_df |> filter(model %in% c(i, "baseline"), lambda == .96),
-            shape = 25, color = "red", show.legend = FALSE
+            shape = 24, color = "red", show.legend = FALSE
         ) +
         geom_text_repel(
-            aes(label = label), alpha = 1, min.segment.length = unit(2, "cm"),
+            aes(label = label),
+            alpha = 1, min.segment.length = unit(2, "cm"),
             show.legend = FALSE, size = 2.5
         ) +
         scale_x_continuous(breaks = scales::extended_breaks(n = 6)) +
         labs(
-            title = paste("Procyclicality Evaluation:", i, "(FESX Short)" ,sep = " "),
+            title = paste("Procyclicality Evaluation:", i, "(FESX Short)", sep = " "),
             x = "Avg. Costs (% of Notional)",
-            y = "Procyclicality", 
+            y = "Procyclicality",
             subtitle = subtitle
         ) +
         scale_alpha_continuous(breaks = c(seq(.9, .99, .02))) +
         theme(
-            text = element_text(family= "lmroman", colour = "#555555"),
+            text = element_text(family = "lmroman", colour = "#555555"),
             legend.position = "right",
             plot.subtitle = element_text(family = "sans", face = "italic", size = 7),
             plot.caption = element_text(size = 8),
-            legend.background = element_rect(fill="transparent", colour = "#cccccc", linewidth = 0),
+            legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
             legend.justification = .5,
-            panel.border = element_rect(colour="#999999", fill = "transparent"),
-            panel.background = element_rect(fill="#FFFFFF", colour="#999999", linewidth = 0),
+            panel.border = element_rect(colour = "#999999", fill = "transparent"),
+            panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
             panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
             panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
             panel.grid.minor.x = element_blank(),
-            plot.background = element_rect(fill = "#F9F9F9", colour="#CCCCCC", linewidth = 0),
-            legend.box.spacing = unit(-.2, "cm"), 
+            plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0),
+            legend.box.spacing = unit(-.2, "cm"),
             legend.box.margin = margin(0, 0, 0, 0),
             axis.ticks = element_blank(),
             axis.text = element_text(size = 6),
             axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
             axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
             axis.title = element_text(size = 8),
-            plot.title = element_text(size = 10, face = "bold"), 
+            plot.title = element_text(size = 10, face = "bold"),
             legend.title = element_text(size = 8, family = "sans", margin = margin(b = -5, 0, 0, 0)),
             legend.direction = "vertical",
             legend.text = element_text(size = 8, margin = margin(l = -6, 0, 0, 0)),
             plot.margin = margin(5, 5, 5, 5),
             legend.key = element_rect(fill = "transparent"),
-            strip.background = element_rect(fill="#FFFFFF", color = "#808080", linewidth = 0.5),
+            strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
             strip.text = element_text(size = 8, margin = margin(t = 2, b = 2, 0, 0))
-        ) + 
+        ) +
         guides(
             color = "none",
             alpha = guide_legend(
-                title = expression(lambda), 
-                title.hjust = .6)) +
+                title = expression(lambda),
+                title.hjust = .6
+            )
+        ) +
         facet_wrap(~measures, scales = "free_y") +
-            scale_color_jama() +
-            scale_fill_jama()
-        
+        scale_color_jama() +
+        scale_fill_jama()
+
     ggsave(
-        paste0("Plots/Output/", i, ".png"), last_plot(),
+        paste0("Plots/Output/", i[1], "_short", ".png"), last_plot(),
         width = 16, height = 7, unit = "cm", dpi = 600
     )
 }
@@ -447,29 +462,29 @@ plot_df <- measures |>
     filter(lambda == .96 | (model == "baseline" & lambda == .995)) |>
     mutate(
         label = case_when(
-        lambda == .995 ~ "~lambda == .995", 
-        TRUE ~ model
+            lambda == .995 ~ "~lambda == .995",
+            TRUE ~ model
         )
-    )  |> 
+    ) |>
     mutate(
         x_segment = baseline_values$costs,
         y_segment = case_when(
-            measures == "peak_to_through" ~ baseline_values$peak_to_through, 
-            measures == "max_30d" ~ baseline_values$max_30d 
+            measures == "peak_to_through" ~ baseline_values$peak_to_through,
+            measures == "max_30d" ~ baseline_values$max_30d
         )
     )
 
 plot_df |>
-    filter(label != "baseline") |> 
+    filter(label != "baseline") |>
     ggplot(aes(x = round(costs * 100, 4), y = values, color = model)) +
     geom_point(show.legend = FALSE) +
-    geom_text_repel(min.segment.length = unit(2, "cm"), force = 10, force_pull = 10, nudge_y = -.1,size = 2.5, aes(label = label), parse = TRUE, show.legend = FALSE) +
+    geom_text_repel(min.segment.length = unit(2, "cm"), force = 10, force_pull = 10, nudge_y = -.1, size = 2.5, aes(label = label), parse = TRUE, show.legend = FALSE) +
     geom_segment(
         aes(
             x = x_segment * 100, y = y_segment,
-            xend = costs * 100 - 6 * (costs - 0.0749), yend = ifelse((model == "speed" & measures == "peak_to_through") | (model == "cap" & measures == "max_30d"), values, values + 0.05
-        )
-        ), show.legend = FALSE, arrow = arrow(length = unit(.13, "cm")), 
+            xend = costs * 100 - 6 * (costs - 0.0749), yend = ifelse((model == "speed" & measures == "peak_to_through") | (model == "cap" & measures == "max_30d"), values, values + 0.05)
+        ),
+        show.legend = FALSE, arrow = arrow(length = unit(.13, "cm")),
         alpha = .5, linewidth = .3
     ) +
     scale_x_continuous(
@@ -478,40 +493,40 @@ plot_df |>
     labs(
         title = "Comparison of APC Tools (FESX Short)",
         x = "Avg. Costs (% of Notional)",
-        y = "Procyclicality", 
+        y = "Procyclicality",
         color = NULL
     ) +
     scale_alpha_continuous(
         breaks = c(seq(.9, .99, .02))
     ) +
     theme(
-        text = element_text(family= "lmroman", colour = "#555555"),
+        text = element_text(family = "lmroman", colour = "#555555"),
         legend.position = "right",
-        legend.background = element_rect(fill="transparent", colour = "#cccccc", linewidth = 0),
+        legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
         legend.justification = .5,
-        panel.border = element_rect(colour="#999999", fill = "transparent"),
-        panel.background = element_rect(fill="#FFFFFF", colour="#999999", linewidth = 0),
+        panel.border = element_rect(colour = "#999999", fill = "transparent"),
+        panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
         panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
         panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
         panel.grid.minor = element_blank(),
-        plot.background = element_rect(fill = "#F9F9F9", colour="#CCCCCC", linewidth = 0, linetype = 1),
-        legend.box.spacing = unit(-.2, "cm"), 
+        plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
+        legend.box.spacing = unit(-.2, "cm"),
         legend.box.margin = margin(0, 0, 0, 0),
         axis.ticks = element_blank(),
         axis.text = element_text(size = 6),
         axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
         axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
         axis.title = element_text(size = 8),
-        plot.title = element_text(size = 10, face = "bold"), 
+        plot.title = element_text(size = 10, face = "bold"),
         legend.title = element_text(size = 8, margin = margin(b = 0, 0, 0, 0), hjust = .5),
         legend.direction = "vertical",
         legend.text = element_text(size = 8, margin = margin(l = -6, 0, 0, 0)),
         plot.margin = margin(5, 5, 5, 5),
         legend.key = element_rect(fill = "transparent"),
-        strip.background = element_rect(fill="#FFFFFF", color = "#808080", linewidth = 0.5),
+        strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
         strip.text = element_text(size = 8, margin = margin(t = 2, b = 2, 0, 0))
     ) +
-    facet_wrap(~measures, scales = "free_y") + 
+    facet_wrap(~measures, scales = "free_y") +
     scale_color_jama()
 
 ggsave(
@@ -519,229 +534,117 @@ ggsave(
     width = 16, height = 7, unit = "cm", dpi = 600
 )
 
-
-# visualizations for short FESX
-measures <- read_csv("Data/procyclicality_calculations_fesx_short.csv")
-
+# tail behavior of stress periods
 plot_df <- measures |>
-    filter(period == "all", type %in% c("costs", "max_30d", "peak_to_through", "kpf")) |>
-    pivot_wider(names_from = type, values_from = values) |>
-    pivot_longer(c(peak_to_through, max_30d), names_to = "measures", values_to = "values")
-
-for (i in c("cap", "speed", "baseline", "floor", "buffer", "cap_floor", "speed_floor")) {
-    plot_df |>
-        filter(model %in% c(i, "baseline"), kpf == 1) |>
-        ggplot(aes(x = round(costs * 100, 4), y = values, color = model, alpha = lambda)) +
-        geom_point() +
-        geom_point(
-            aes(fill = model),
-            data = plot_df |> filter(model %in% c(i, "baseline"), lambda == .96),
-            shape = 25, color = "red", show.legend = FALSE
-        ) +
-        scale_x_continuous(
-            breaks = scales::extended_breaks(n = 6)
-        ) +
-        labs(
-            title = paste("Procyclicality", i, sep = " "),
-            x = "Avg. Costs (% of Notional)",
-            y = "Procyclicality"
-        ) +
-        scale_alpha_continuous(
-            breaks = c(seq(.9, .99, .02))
-        ) +
-        theme(
-            text = element_text(family= "lmroman", colour = "#555555"),
-            legend.position = "right",
-            legend.background = element_rect(fill="transparent", colour = "#cccccc", linewidth = 0),
-            legend.justification = .5,
-            panel.border = element_rect(colour="#999999", fill = "transparent"),
-            panel.background = element_rect(fill="#FFFFFF", colour="#999999", linewidth = 0),
-            panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.minor = element_blank(),
-            plot.background = element_rect(fill = "#F9F9F9", colour="#CCCCCC", linewidth = 0, linetype = 1),
-            legend.box.spacing = unit(-.2, "cm"), 
-            legend.box.margin = margin(0, 0, 0, 0),
-            axis.ticks = element_blank(),
-            axis.text = element_text(size = 6),
-            axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
-            axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
-            axis.title = element_text(size = 8),
-            plot.title = element_text(size = 10, face = "bold"), 
-            legend.title = element_text(size = 8, family = "sans", margin = margin(b = -5, 0, 0, 0)),
-            legend.direction = "vertical",
-            legend.text = element_text(size = 8, margin = margin(l = -6, 0, 0, 0)),
-            plot.margin = margin(5, 5, 5, 5),
-            legend.key = element_rect(fill = "transparent"),
-            strip.background = element_rect(fill="#FFFFFF", color = "#808080", linewidth = 0.5),
-            strip.text = element_text(size = 8, margin = margin(t = 2, b = 2, 0, 0))
-        ) + 
-        guides(
-            color = "none",
-            alpha = guide_legend(
-                title = expression(lambda), 
-                title.hjust = .6)) +
-        facet_wrap(~measures, scales = "free_y") +
-            scale_color_jama() +
-            scale_fill_jama()
-        
-    ggsave(
-        paste0("Plots/Output/", i[1], "_short", ".png"), last_plot(),
-        width = 16, height = 7, unit = "cm", dpi = 600
-    )
-}
-
-plot_df <- measures |>
-    filter(type %in% c("max_30d", "peak_to_through", "costs"), period == "all") |>
-    pivot_wider(names_from = type, values_from = values) |>
-    pivot_longer(c(peak_to_through, max_30d), names_to = "measures", values_to = "values") |>
-    mutate(label = ifelse(lambda == .995, model, NA))
-
-a <- plot_df
-plot_df <- a |>
-    filter(model %in% c("baseline", "cap", "cap_floor")) |>
-    group_by
-
-plot_df |>
-    ggplot(aes(y = values, x = costs, color = model)) +
-    geom_point(aes(alpha = lambda),
-        data = plot_df |> filter(period == "all" & lambda != .96), size = 1
-    ) +
-    geom_point(
-        data = plot_df |> filter(lambda == .96),
-        color = "red", size = 2, show.legend = FALSE
-    ) +
-    # guides(color = "none") +
-    labs(
-        title = "Comparison of APC Tools (FESX Short)"
-    ) +
-    facet_wrap(~measures, scales = "free_y")
-
-ggsave(
-    "Plots/Output/combined_murphey.png", last_plot(),
-    width = 16, height = 12, unit = "cm", dpi = 600
-)
-
-# plot with tail-behavior analysis (stress periods)
-plot_df <- measures |>
-    filter(type %in% c("avg_ltm", "max_ltm", "n_breaches"), period != "all") 
+    filter(type %in% c("avg_ltm", "max_ltm", "n_breaches"), period != "all")
 
 plot_df |>
     ggplot(aes(x = lambda, y = values, color = model, group = model)) +
     geom_line(
         data = plot_df |> filter(type == "n_breaches"),
-        position = position_jitter(width = .0022, height = 0), size = .4
+        position = position_jitter(width = .0022, height = 0), linewidth = .3
     ) +
     geom_line(
         data = plot_df |> filter(type == "max_ltm"),
-        position = position_jitter(width = .002, height = .01), size = .4
+        position = position_jitter(width = .002, height = .01), linewidth = .3
     ) +
     geom_line(
         data = plot_df |> filter(type == "avg_ltm"),
-        position = position_jitter(width = .001, height = .01), size = .4
+        position = position_jitter(width = .001, height = .01), linewidth = .3
     ) +
     scale_x_continuous(
         expand = expansion(add = c(.01, .01))
     ) +
     labs(
         title = "Loss to Margin and Breaches - Stress Periods (FESX Short)",
-        subtitle = "Minimal random noise added to data to avoid overlapping lines",
-        x = expression(lambda), 
+        subtitle = TeX("Minimal random noise added to data to avoid overlapping lines | Grey Line = Baseline Calibration ($\\lambda$ = 0.96)"),
+        x = expression(lambda),
         y = NULL
     ) +
     geom_vline(xintercept = .96, linetype = "dashed", color = "darkgrey") +
     facet_grid2(period ~ type, scales = "free", independent = "y") +
     theme(
-            text = element_text(family= "lmroman", colour = "#555555"),
-            legend.position = "bottom",
-            legend.key.width = unit(1.4, "cm"),
-            legend.background = element_rect(fill="transparent", colour = "#cccccc", linewidth = 0),
-            legend.justification = .5,
-            plot.subtitle = element_text(size = 8),
-            plot.caption = element_text(size = 8, margin = margin(0, 0, 0, 0)),
-            panel.border = element_rect(colour="#999999", fill = "transparent"),
-            panel.background = element_rect(fill="#FFFFFF", colour="#999999", linewidth = 0),
-            panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.minor = element_blank(),
-            plot.background = element_rect(fill = "#F9F9F9", colour="#CCCCCC", linewidth = 0, linetype = 1),
-            legend.box.spacing = unit(-.2, "cm"), 
-            #legend.box.margin = margin(0, 0, 0, 0),
-            axis.ticks = element_blank(),
-            axis.text = element_text(size = 6),
-            axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
-            axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
-            axis.title = element_text(size = 8),
-            axis.title.x = (element_text(family = "sans")),
-            plot.title = element_text(size = 10, face = "bold"), 
-            legend.direction = "vertical",
-            legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
-            plot.margin = margin(5, 5, 5, 5),
-            legend.key = element_rect(fill = "transparent"),
-            strip.background = element_rect(fill="#FFFFFF", color = "#808080", linewidth = 0.5),
-            strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
-        ) +
-    guides(color = guide_legend(label.position = "top", title = NULL, nrow = 1)
+        text = element_text(family = "lmroman", colour = "#555555"),
+        legend.position = "bottom",
+        legend.key.width = unit(1.4, "cm"),
+        legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
+        legend.justification = .5,
+        plot.caption = element_text(size = 8, margin = margin(0, 0, 0, 0)),
+        panel.border = element_rect(colour = "#999999", fill = "transparent"),
+        panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
+        panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.minor = element_blank(),
+        plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
+        legend.box.spacing = unit(-.2, "cm"),
+        axis.ticks = element_blank(),
+        axis.text = element_text(size = 6),
+        axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
+        axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
+        axis.title.x = element_text(family = "times"),
+        axis.title = element_text(size = 8),
+        plot.title = element_text(size = 10, face = "bold"),
+        plot.subtitle = element_text(size = 8, family = "times"),
+        legend.direction = "vertical",
+        legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
+        plot.margin = margin(5, 5, 5, 5),
+        legend.key = element_rect(fill = "transparent"),
+        strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
+        strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
     ) +
+    guides(color = guide_legend(label.position = "top", title = NULL, nrow = 1)) +
     scale_color_jama()
 
-ggsave("Plots/Output/Risk_all.png", last_plot(), width = 16, height = 13.5, units = "cm", dpi = 600)
+ggsave("Plots/Output/tail_risk_stress_periods_short.png", last_plot(), width = 16, height = 10, units = "cm", dpi = 600)
 
-# chart only for entire time 
+# tail measures for entire period
 plot_df <- measures |>
-    filter(type %in% c("avg_ltm", "max_ltm", "n_breaches"), period  == "all") 
+    filter(type %in% c("avg_ltm", "max_ltm", "n_breaches"), period == "all")
 
 plot_df |>
     ggplot(aes(x = lambda, y = values, color = model, group = model)) +
-    geom_line(position = position_jitter(width = .0022, height = 0), linewidth = .4) +
+    geom_line(position = position_jitter(width = .0022, height = 0), linewidth = .3) +
     scale_x_continuous(
         expand = expansion(add = c(.01, .01))
     ) +
     labs(
-        title = "Loss to Margin and Number of Breaches",
-        subtitle = "Minimal random noise added to data to avoid overlapping lines", 
-        caption = "Own Depiction", 
-        x = expression(lambda), 
+        title = "Loss to Margin and Number of Breaches (FESX Short)",
+        subtitle = TeX("Minimal random noise added to data to avoid overlapping lines | Grey Line = Baseline Calibration ($\\lambda$ = 0.96)"),
+        x = expression(lambda),
         y = NULL
     ) +
     geom_vline(xintercept = .96, linetype = "dashed", color = "darkgrey") +
-    facet_wrap(~ type, scales = "free") +
+    facet_wrap(~type, scales = "free") +
     theme(
-            text = element_text(family= "lmroman", colour = "#555555"),
-            legend.position = "bottom",
-            legend.key.width = unit(1.4, "cm"),
-            legend.background = element_rect(fill="transparent", colour = "#cccccc", linewidth = 0),
-            legend.justification = .5,
-            plot.subtitle = element_text(size = 8),
-            plot.caption = element_text(size = 8, margin = margin(0, 0, 0, 0)),
-            panel.border = element_rect(colour="#999999", fill = "transparent"),
-            panel.background = element_rect(fill="#FFFFFF", colour="#999999", linewidth = 0),
-            panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.minor = element_blank(),
-            plot.background = element_rect(fill = "#F9F9F9", colour="#CCCCCC", linewidth = 0, linetype = 1),
-            legend.box.spacing = unit(-.2, "cm"), 
-            axis.ticks = element_blank(),
-            axis.text = element_text(size = 6),
-            axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
-            axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
-            axis.title = element_text(size = 8),
-            plot.title = element_text(size = 10, face = "bold"), 
-            legend.direction = "vertical",
-            legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
-            plot.margin = margin(5, 5, 5, 5),
-            legend.key = element_rect(fill = "transparent"),
-            strip.background = element_rect(fill="#FFFFFF", color = "#808080", linewidth = 0.5),
-            strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
-        ) +
-    guides(
-        color = guide_legend(
-            label.position = "top", title = NULL, nrow = 1,
-            override.aes = list(linewidth = 1.5)
-        )
+        text = element_text(family = "lmroman", colour = "#555555"),
+        legend.position = "bottom",
+        legend.key.width = unit(1.4, "cm"),
+        legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
+        legend.justification = .5,
+        plot.subtitle = element_text(size = 8, family = "times"),
+        axis.title.x = element_text(family = "times"),
+        plot.caption = element_text(size = 8, margin = margin(0, 0, 0, 0)),
+        panel.border = element_rect(colour = "#999999", fill = "transparent"),
+        panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
+        panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
+        panel.grid.minor = element_blank(),
+        plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
+        legend.box.spacing = unit(-.2, "cm"),
+        axis.ticks = element_blank(),
+        axis.text = element_text(size = 6),
+        axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
+        axis.text.x = element_text(margin = margin(0, 0, 0, 0), family = ""),
+        axis.title = element_text(size = 8),
+        plot.title = element_text(size = 10, face = "bold"),
+        legend.direction = "vertical",
+        legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
+        plot.margin = margin(5, 5, 5, 5),
+        legend.key = element_rect(fill = "transparent"),
+        strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
+        strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
     ) +
+    guides(color = guide_legend(label.position = "top", title = NULL, nrow = 1)) +
     scale_color_jama()
 
-ggsave("Plots/Output/Risk_total.png", last_plot(), width = 16, height = 7, units = "cm", dpi = 600)
-
-for (i in list(c(1:100), "baseline", "floor", "buffer", c("cap", "cap_floor"))) print(i)
+ggsave("Plots/Output/tail_risk_total_short.png", last_plot(), width = 16, height = 7, units = "cm", dpi = 600)
