@@ -1,5 +1,7 @@
 # load relevant packages
 library(tidyverse)
+library(glue)
+
 # import written functions and store master sheet in memory
 source("functions.R")
 master <- read_master("Data/data_input.xlsx")
@@ -13,10 +15,7 @@ start_fc <- as.Date("2007-06-01")
 end_fc <- as.Date("2009-03-31")
 start_dotcom <- as.Date("2001-03-20")
 end_dotcom <- as.Date("2003-04-01")
-start_regular <- as.Date("2004-05-20")
-
-# define function paremeters (FGBL)
-
+start_regular <- as.Date("2007-04-20")
 
 periods <- list(
     all = tibble(start = start_all, end = end_all, period = "all"),
@@ -31,74 +30,68 @@ model_conf_level <- .99
 test_conf_level <- .99
 
 # store parameters needed for margin calculation
-args_long_FESX <-
-    list(
-        MPOR = 3, factor = 1.37, quantile = 0.978,
-        lambda = NULL, n_day = 750, burn_in = 400,
-        absolute = FALSE, liq_group = "PEQ01", short = FALSE,
-        mean = TRUE
-    )
+args_short_FESX <- list(
+    MPOR = 3, factor = 1.37, quantile = 0.978,
+    lambda = NULL, n_day = 750, burn_in = 750,
+    liq_group = "PEQ01", short = TRUE,
+    mean = TRUE
+)
 
-args_long_FESX_dotcom <-
-    list(
-        MPOR = 3, factor = 1.37, quantile = 0.978,
-        lambda = NULL, n_day = 500, burn_in = 200,
-        absolute = FALSE, liq_group = "PEQ01", short = FALSE,
-        mean = FALSE
-    )
+args_short_FESX_dotcom <- list(
+    MPOR = 3, factor = 1.37, quantile = 0.978,
+    lambda = NULL, n_day = 500, burn_in = 200,
+    liq_group = "PEQ01", short = TRUE,
+    mean = FALSE
+)
 
 # define lambdas to loop over
 lambda_loop <- seq(0.9, 0.995, by = 0.005)
 measures <- tibble(NULL)
 count <- 1
 
-tic()
 for (lambda in lambda_loop) {
     # assign lambda to the args list
-    args_long_FESX$lambda <- lambda
-    args_long_FESX_dotcom$lambda <- lambda
+    args_short_FESX$lambda <- lambda
+    args_short_FESX_dotcom$lambda <- lambda
 
     # unmitigated margin
-    margin_baseline <-
+    margin_baseline_regular <-
         calculate_fhs_margin(
             product = "FESX", start = start_regular, end = end_all,
-            args = args_long_FESX, steps = TRUE
+            args = args_short_FESX, steps = TRUE
         )
 
     # unmitigated margin during dotcom / calculate without mean
     margin_baseline_dotcom <- calculate_fhs_margin(
         product = "FESX", start = start_dotcom, end = start_regular - 1,
-        args = args_long_FESX_dotcom, steps = TRUE
+        args = args_short_FESX_dotcom, steps = TRUE
     )
 
     # join baseline margins
-    margin_baseline <- bind_rows(
-        margin_baseline, margin_baseline_dotcom
-    ) |> drop_na()
+    margin_baseline <- bind_rows(margin_baseline_regular, margin_baseline_dotcom) |>
+        drop_na()
 
     # floored margin
-    margin_floor <-
+    margin_floor_regular <-
         calculate_margin(
             product = "FESX", start = start_regular, end = end_all,
-            args = args_long_FESX, steps = TRUE, unfloored_df = margin_baseline
+            args = args_short_FESX, steps = TRUE, unfloored_df = margin_baseline
         )
 
     # floored margin during dotcom
-    # (different parameters for longer calculation horizon)
     margin_floor_dotcom <- calculate_margin(
         product = "FESX", start = start_dotcom, end = start_regular - 1,
-        args = args_long_FESX_dotcom, steps = TRUE, unfloored_df = margin_baseline_dotcom
+        args = args_short_FESX_dotcom, steps = TRUE, unfloored_df = margin_baseline_dotcom
     )
 
     # join baseline margins
-    margin_floor <- bind_rows(
-        margin_floor, margin_floor_dotcom
-    ) |> drop_na()
+    margin_floor <- bind_rows(margin_floor_regular, margin_floor_dotcom) |>
+        drop_na()
 
     # Capped / floored & capped Margin
     cap <- quantile(margin_floor$MARGIN, .95, na.rm = TRUE)[[1]]
-    margin_cap <- cap_margin(margin_baseline, cap = cap, floor = 0)
-    margin_cap_floor <- cap_margin(margin_floor, cap = cap, floor = 0)
+    margin_cap <- cap_margin(margin_baseline, cap = cap)
+    margin_cap_floor <- cap_margin(margin_floor, cap = cap)
 
     # buffered margin
     release <- quantile(margin_baseline$MARGIN, .99, na.rm = TRUE) / 1.25
@@ -186,69 +179,8 @@ for (lambda in lambda_loop) {
     measures <- measures |>
         bind_rows(temp)
 
-    print(
-        paste(
-            "loop", as.character(count), "/",
-            as.character(length(lambda_loop)), "finished",
-            sep = " "
-        )
-    )
+    print(glue("loop {count} / {length(lambda_loop)} finished"))
     count <- count + 1
 }
-toc()
 
-write_csv(measures, "Data/procyclicality_calculations_CAP95.csv")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-tibble(NULL) |>
-    ggplot(aes(x = DATE, y = MARGIN)) +
-    geom_line(data = speed_margin, color = "blue") +
-    xlim(c(as.Date("2020-03-01"), as.Date("2020-07-01")))
-
-for (i in seq(.9, .995, .005)) {
-    limit <- quantile(margin_baseline$MARGIN / lead(margin_baseline$MARGIN, 20),
-        i,
-        na.rm = TRUE
-    )[[1]]
-    speed_margin <- speed_test(margin_floor, n_day = 20, limit = limit)
-    summary_stats(speed_margin, start_date, end_date)
-}
-
-# unmitigated margin
-margin_baseline_200 <-
-    calculate_fhs_margin(
-        product = "FESX", start = start_date, end = end_date,
-        args = args_long_FESX
-    )
-
-args_long_FESX$burn_in <- 300
-args_long_FESX$n_day <- 750
-
-start_date <- as.Date("2000-01-01")
-end_date <- as.Date("2021-01-01")
-
-tibble(NULL) |>
-    ggplot(aes(x = DATE, y = MARGIN)) +
-    geom_line(data = margin_floor)
-
-min(margin_baseline_200$DATE)
-
-df <- df |> arrange(DATE)
-
-which(df$DATE == as.Date("2001-01-02"))
-
-a <- c(1:10)
-which(a == 10)
+write_csv(measures, "Data/procyclicality_calculations_fesx_short.csv")
