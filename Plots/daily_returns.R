@@ -9,7 +9,6 @@ source("functions.R")
 master <- read_master("Data/data_input.xlsx")
 
 # add fonts for plotting
-# add fonts for plotting
 font_add(
   family = "lmroman",
   regular = "Fonts/lmroman10_regular.ttf",
@@ -32,8 +31,7 @@ daily_returns <-
   filter(between(DATE, start_date, end_date))
 
 # plot graph
-out <-
-  daily_returns |>
+daily_returns |>
   ggplot(aes(x = DATE, y = exp(LOG_RET) - 1)) +
   geom_line(size = .3) +
   scale_y_continuous(
@@ -50,16 +48,11 @@ out <-
     title = "Daily FESX Returns",
     y = NULL,
     x = NULL,
-    subtitle = "Front month contract (Expiry 0-90 days)",
-    caption = "Own Depiction | Data Source: Eurex Clearing AG, Bloomberg"
+    subtitle = "Front month contract (Expiry 0-90 days)"
   ) +
   theme(
     text = element_text(family = "lmroman", colour = "#555555"),
-    legend.position = "bottom",
-    legend.key.width = unit(1.4, "cm"),
-    legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
-    legend.justification = .5,
-    plot.subtitle = element_text(size = 8),
+    plot.subtitle = element_text(size = 8, margin = margin(0, 0, 0, b = 2)),
     plot.caption = element_text(size = 8, margin = margin(t = 5, 0, 0, 0)),
     panel.border = element_rect(colour = "#999999", fill = "transparent"),
     panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
@@ -67,24 +60,17 @@ out <-
     panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
     panel.grid.minor = element_blank(),
     plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
-    legend.box.spacing = unit(-.2, "cm"),
     axis.ticks = element_blank(),
     axis.text = element_text(size = 6),
     axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
     axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
     axis.title = element_text(size = 8),
-    plot.title = element_text(size = 10, face = "bold"),
-    legend.direction = "vertical",
-    legend.text = element_text(size = 8, margin = margin(b = -6, 0, 0, 0)),
+    plot.title = element_text(size = 10, face = "bold", margin = margin(0, 0, 0, 0)),
     plot.margin = margin(5, 5, 5, 5),
-    legend.key = element_rect(fill = "transparent"),
-    strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
-    strip.text = element_text(size = 8, margin = margin(2, 2, 2, 2))
   )
 
 # save output
 ggsave("Plots/Output/daily_returns_FESX.png",
-  plot = out,
-  device = "png", dpi = 600, height = 6.32,
+  plot = last_plot(), dpi = 600, height = 5,
   width = 7.86, units = "cm",
 )

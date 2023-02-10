@@ -74,8 +74,10 @@ for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap"
         filter(model %in% c(i, "baseline")) |>
         ggplot(aes(x = round(costs * 100, 4), y = values, color = model, alpha = lambda)) +
         geom_point() +
+        # add empty observation for continuous alpha scale (via fill scale)
+        geom_point(data = tibble(costs = NA_integer_, values = NA_integer_, lambda = .9, model = NA_character_), aes(fill = lambda)) +
         geom_point(
-            aes(fill = model),
+            # aes(fill = model),
             data = plot_df |> filter(model %in% c(i, "baseline"), lambda == .96),
             shape = 24, color = "red", show.legend = FALSE
         ) +
@@ -91,10 +93,15 @@ for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap"
             y = "Procyclicality",
             subtitle = subtitle
         ) +
-        scale_alpha_continuous(breaks = c(seq(.9, .99, .02))) +
+        scale_fill_gradient(
+            low = alpha("#374E55FF", .1), high = "#374E55FF",
+            breaks = c(seq(.91, .99, .02)), limits = c(.9, 1),
+        ) +
+        # scale_alpha_continuous(breaks = c(seq(.9, .99, .02))) +
         theme(
             text = element_text(family = "lmroman", colour = "#555555"),
             legend.position = "right",
+            legend.key.width = unit(.3, "cm"),
             plot.subtitle = element_text(family = "sans", face = "italic", size = 7),
             plot.caption = element_text(size = 8),
             legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
@@ -106,16 +113,16 @@ for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap"
             panel.grid.minor.x = element_blank(),
             plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0),
             legend.box.spacing = unit(-.2, "cm"),
-            legend.box.margin = margin(0, 0, 0, 0),
+            legend.box.margin = margin(l = 6, 0, 0, 0),
             axis.ticks = element_blank(),
             axis.text = element_text(size = 6),
             axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
             axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
             axis.title = element_text(size = 8),
             plot.title = element_text(size = 10, face = "bold"),
-            legend.title = element_text(size = 8, family = "sans", margin = margin(b = -5, 0, 0, 0)),
+            legend.title = element_text(size = 8, family = "sans", margin = margin(b = 0, 0, 0, 0)),
             legend.direction = "vertical",
-            legend.text = element_text(size = 8, margin = margin(l = -6, 0, 0, 0)),
+            legend.text = element_text(size = 7, margin = margin(l = 0, 0, 0, 0)),
             plot.margin = margin(5, 5, 5, 5),
             legend.key = element_rect(fill = "transparent"),
             strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
@@ -123,14 +130,14 @@ for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap"
         ) +
         guides(
             color = "none",
-            alpha = guide_legend(
+            alpha = "none",
+            fill = guide_colorbar(
                 title = expression(lambda),
-                title.hjust = .6
+                title.hjust = .5
             )
         ) +
         facet_wrap(~measures, scales = "free_y") +
-        scale_color_jama() +
-        scale_fill_jama()
+        scale_color_jama()
 
     ggsave(
         paste0("Plots/Output/", i[1], ".png"), last_plot(),
@@ -229,11 +236,11 @@ plot_df |>
         position = position_jitter(width = .0022, height = 0), linewidth = .4
     ) +
     geom_line(
-        data = plot_df |> filter(type == "max_ltm"),
+        data = plot_df |> filter(type == "avg_ltm"),
         position = position_jitter(width = .002, height = .01), linewidth = .4
     ) +
     geom_line(
-        data = plot_df |> filter(type == "avg_ltm"),
+        data = plot_df |> filter(type == "max_ltm"),
         position = position_jitter(width = .001, height = .01), linewidth = .4
     ) +
     scale_x_continuous(
@@ -242,6 +249,7 @@ plot_df |>
     labs(
         title = "Loss to Margin and Breaches - Stress Periods (FESX Long)",
         subtitle = TeX("Minimal random noise added to data to avoid overlapping lines | Grey Line = Baseline Calibration ($\\lambda$ = 0.96)"),
+        caption = "Covid: 01.01.2020 - 31.12.2020, Financial Crisis: 01.06.2007 - 31.03.2009, Dotcom: 20.03.2001 - 01.04.2003",
         x = expression(lambda),
         y = NULL
     ) +
@@ -386,8 +394,10 @@ for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap"
         filter(model %in% c(i, "baseline")) |>
         ggplot(aes(x = round(costs * 100, 4), y = values, color = model, alpha = lambda)) +
         geom_point() +
+        # add empty observation for continuous alpha scale (via fill scale)
+        geom_point(data = tibble(costs = NA_integer_, values = NA_integer_, lambda = .9, model = NA_character_), aes(fill = lambda)) +
         geom_point(
-            aes(fill = model),
+            # aes(fill = model),
             data = plot_df |> filter(model %in% c(i, "baseline"), lambda == .96),
             shape = 24, color = "red", show.legend = FALSE
         ) +
@@ -403,10 +413,15 @@ for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap"
             y = "Procyclicality",
             subtitle = subtitle
         ) +
-        scale_alpha_continuous(breaks = c(seq(.9, .99, .02))) +
+        scale_fill_gradient(
+            low = alpha("#374E55FF", .1), high = "#374E55FF",
+            breaks = c(seq(.91, .99, .02)), limits = c(.9, 1),
+        ) +
+        # scale_alpha_continuous(breaks = c(seq(.9, .99, .02))) +
         theme(
             text = element_text(family = "lmroman", colour = "#555555"),
             legend.position = "right",
+            legend.key.width = unit(.3, "cm"),
             plot.subtitle = element_text(family = "sans", face = "italic", size = 7),
             plot.caption = element_text(size = 8),
             legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
@@ -418,16 +433,16 @@ for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap"
             panel.grid.minor.x = element_blank(),
             plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0),
             legend.box.spacing = unit(-.2, "cm"),
-            legend.box.margin = margin(0, 0, 0, 0),
+            legend.box.margin = margin(l = 6, 0, 0, 0),
             axis.ticks = element_blank(),
             axis.text = element_text(size = 6),
             axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
             axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
             axis.title = element_text(size = 8),
             plot.title = element_text(size = 10, face = "bold"),
-            legend.title = element_text(size = 8, family = "sans", margin = margin(b = -5, 0, 0, 0)),
+            legend.title = element_text(size = 8, family = "sans", margin = margin(b = 0, 0, 0, 0)),
             legend.direction = "vertical",
-            legend.text = element_text(size = 8, margin = margin(l = -6, 0, 0, 0)),
+            legend.text = element_text(size = 7, margin = margin(l = 0, 0, 0, 0)),
             plot.margin = margin(5, 5, 5, 5),
             legend.key = element_rect(fill = "transparent"),
             strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
@@ -435,17 +450,17 @@ for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap"
         ) +
         guides(
             color = "none",
-            alpha = guide_legend(
+            alpha = "none",
+            fill = guide_colorbar(
                 title = expression(lambda),
-                title.hjust = .6
+                title.hjust = .5
             )
         ) +
         facet_wrap(~measures, scales = "free_y") +
-        scale_color_jama() +
-        scale_fill_jama()
+        scale_color_jama()
 
     ggsave(
-        paste0("Plots/Output/", i[1], "_short", ".png"), last_plot(),
+        paste0("Plots/Output/", i[1], ".png"), last_plot(),
         width = 16, height = 7, unit = "cm", dpi = 600
     )
 }
@@ -559,7 +574,8 @@ plot_df |>
         title = "Loss to Margin and Breaches - Stress Periods (FESX Short)",
         subtitle = TeX("Minimal random noise added to data to avoid overlapping lines | Grey Line = Baseline Calibration ($\\lambda$ = 0.96)"),
         x = expression(lambda),
-        y = NULL
+        y = NULL,
+        caption = "Covid: 01.01.2020 - 31.12.2020, Financial Crisis: 01.06.2007 - 31.03.2009, Dotcom: 20.03.2001 - 01.04.2003"
     ) +
     geom_vline(xintercept = .96, linetype = "dashed", color = "darkgrey") +
     facet_grid2(period ~ type, scales = "free", independent = "y") +

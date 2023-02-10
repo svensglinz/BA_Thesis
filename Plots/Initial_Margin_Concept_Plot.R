@@ -1,7 +1,7 @@
 # load libraries
 library(tidyverse)
 library(showtext)
-library(patchwork)
+library(gghighlight)
 
 # add fonts for plotting
 font_add(
@@ -18,50 +18,55 @@ showtext_opts(dpi = 600)
 # set seed for replicability
 set.seed(7)
 
-# create start path (identical for all paths)
-start <- c(100, rnorm(n = 99, mean = 0, sd = 1))
-
 # create diffusion & paste together with start path
-paths <- matrix(data = NA, nrow = 400, ncol = 10)
-for (i in 1:10) paths[, i] <- c(start, rnorm(n = 300, mean = 0, sd = 1))
+paths <- matrix(data = NA, nrow = 300, ncol = 20)
+for (i in 1:20) paths[, i] <- rnorm(n = 300, mean = 0, sd = 1)
 
 # cumsum over all steps --> Random motion
 paths <- paths |>
     as.data.frame() |>
     sapply(cumsum) |>
-    as.data.frame()
+    as_tibble()
 
 # pivot longer for plotting of all paths by groups
 # & assign color to paths
-paths$index <- 1:400
-paths$index <- as.factor(paths$index)
-paths$col <- c(rep("black", 99), rep("darkgrey", 301))
+paths$index <- 1:300
 
 paths <- paths |>
-    pivot_longer(-c(index, col), names_to = "values")
+    pivot_longer(-index, names_to = "values")
+
+paths <- paths |>
+    mutate(
+        index = as.factor(index),
+        col = case_when(
+            values == "V1" ~ "#00A1D5FF",
+            values == "V14" ~ "#DF8F44FF",
+            TRUE ~ "grey50"
+        ),
+        width = case_when(
+            values == "V1" ~ .4,
+            values == "V14" ~ .4,
+            TRUE ~ .2
+        )
+    )
 
 # plot graph
 graph <- paths |>
-    ggplot(aes(x = index, y = value, group = values, color = I(col))) +
+    ggplot(aes(x = index, y = value, color = I(col), group = values)) +
     geom_density(
-        aes(y = value, after_stat(density) * 1000 + 401),
+        aes(y = value, after_stat(density) * 1000 + 301),
         inherit.aes = FALSE, linewidth = .3
     ) +
-    geom_line(linewidth = .3) +
-    geom_vline(xintercept = 100, linewidth = .3) +
-    geom_segment(aes(
-        y = paths$value[paths$index == 100][1], x = 100,
-        yend = paths$value[paths$index == 100][1], xend = 400
-    ), color = "#838383", linewidth = .3) +
+    geom_line(aes(linewidth = I(width)), show.legend = FALSE) +
+    geom_vline(xintercept = 100, linetype = 2, linewidth = .3) +
     geom_vline(xintercept = 200, linetype = 2, linewidth = .3) +
-    geom_vline(xintercept = 300, linetype = 2, linewidth = .3) +
+    geom_hline(yintercept = 0, color = "#838383", linewidth = .3) +
     labs(
         x = NULL,
-        y = NULL,
-        title = "Concept of Initial Margin",
-        caption = "Own Depiction"
+        y = "PnL",
+        title = "Concept of Initial Margin"
     ) +
-    scale_y_continuous(breaks = seq(from = 50, to = 140, by = 10)) +
+    scale_y_continuous(breaks = seq(from = -50, to = 50, by = 10)) +
     theme(
         text = element_text(family = "lmroman", colour = "#555555"),
         panel.border = element_rect(colour = "#999999", fill = "transparent"),
@@ -80,14 +85,10 @@ graph <- paths |>
         plot.caption = element_text(size = 8)
     ) +
     scale_x_discrete(
-        breaks = c(1, 100, 200, 300, 350, 400),
-        labels = c(
-            "1" = "t-1", "100" = "t",
-            "200" = "t+1", "300" = "t+2",
-            "350" = "...", "400" = "t+n"
-        )
+        breaks = c(1, 100, 200, 250, 300),
+        labels = c("t", "t+1", "t+2", "...", "t+n")
     ) +
-    coord_cartesian(clip = "off", xlim = c(0, 400))
+    coord_cartesian(clip = "off", xlim = c(0, 300))
 
 # save output
 ggsave("Plots/Output/IM_graph.png",

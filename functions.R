@@ -368,7 +368,7 @@ summary_stats <- function(margin_df, start, end) {
         by = 1,
         width = length(margin_df$MARGIN),
         partial = TRUE, align = "left",
-        FUN = \(x) max(x[1] / min(x))
+        FUN = \(x) x[1] / min(x) # deleted max() around the function! --> Check if results are the same
     )
     peak_to_through <- max(peak_to_through, na.rm = TRUE)
 
