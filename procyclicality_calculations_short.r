@@ -1,9 +1,8 @@
 # load relevant packages
 library(tidyverse)
 library(glue)
-
-# import written functions and store master sheet in memory
 source("functions.R")
+
 master <- read_master("Data/data_input.xlsx")
 
 # define function paremeters (FESX)

@@ -5,15 +5,17 @@ library(ggh4x)
 library(ggsci)
 library(showtext)
 library(latex2exp)
-# add fonts for plotting & plot_theme
+source("functions.R")
 
+# add fonts for plotting & plot_theme
 set_plot_theme()
 font_add(
     family = "lmroman",
     regular = "Fonts/lmroman10_regular.ttf",
     bold = "Fonts/lmroman10_bold.ttf",
     italic = "Fonts/lmroman10_italic.ttf",
-    bolditalic = "Fonts/lmroman10_bolditalic.ttf"
+    bolditalic = "Fonts/lmroman10_bolditalic.ttf",
+    symbol = "Fonts/lmroman10_math.otf"
 )
 
 showtext_auto(enable = TRUE)
@@ -97,37 +99,6 @@ for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap"
         scale_fill_gradient(
             low = alpha("#374E55FF", .1), high = "#374E55FF",
             breaks = c(seq(.91, .99, .02)), limits = c(.9, 1),
-        ) +
-        # scale_alpha_continuous(breaks = c(seq(.9, .99, .02))) +
-        theme(
-            text = element_text(family = "lmroman", colour = "#555555"),
-            legend.position = "right",
-            legend.key.width = unit(.3, "cm"),
-            plot.subtitle = element_text(family = "sans", face = "italic", size = 7),
-            plot.caption = element_text(size = 8),
-            legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
-            legend.justification = .5,
-            panel.border = element_rect(colour = "#999999", fill = "transparent"),
-            panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
-            panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
-            panel.grid.minor.x = element_blank(),
-            plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0),
-            legend.box.spacing = unit(-.2, "cm"),
-            legend.box.margin = margin(l = 6, 0, 0, 0),
-            axis.ticks = element_blank(),
-            axis.text = element_text(size = 6),
-            axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
-            axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
-            axis.title = element_text(size = 8),
-            plot.title = element_text(size = 10, face = "bold"),
-            legend.title = element_text(size = 8, family = "sans", margin = margin(b = 0, 0, 0, 0)),
-            legend.direction = "vertical",
-            legend.text = element_text(size = 7, margin = margin(l = 0, 0, 0, 0)),
-            plot.margin = margin(5, 5, 5, 5),
-            legend.key = element_rect(fill = "transparent"),
-            strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
-            strip.text = element_text(size = 8, margin = margin(t = 2, b = 2, 0, 0))
         ) +
         guides(
             color = "none",

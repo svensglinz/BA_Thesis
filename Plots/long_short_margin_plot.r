@@ -1,8 +1,8 @@
 # load necessary libraries
 library(tidyverse)
 library(showtext)
-# import written functions and store master sheet in memory
 source("functions.R")
+
 master <- read_master("Data/data_input.xlsx")
 
 # add fonts for plotting
@@ -11,9 +11,11 @@ font_add(
     regular = "Fonts/lmroman10_regular.ttf",
     bold = "Fonts/lmroman10_bold.ttf",
     italic = "Fonts/lmroman10_italic.ttf",
-    bolditalic = "Fonts/lmroman10_bolditalic.ttf"
+    bolditalic = "Fonts/lmroman10_bolditalic.ttf",
+    symbol = "Fonts/lmroman10_math.otf"
 )
 
+set_plot_theme()
 showtext_auto(enable = TRUE)
 showtext_opts(dpi = 600)
 

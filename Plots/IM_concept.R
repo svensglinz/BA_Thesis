@@ -1,7 +1,6 @@
 # load libraries
 library(tidyverse)
 library(showtext)
-library(gghighlight)
 
 # add fonts for plotting
 font_add(
@@ -52,7 +51,7 @@ paths <- paths |>
     )
 
 # plot graph
-graph <- paths |>
+paths |>
     ggplot(aes(x = index, y = value, color = I(col), group = values)) +
     geom_density(
         aes(y = value, after_stat(density) * 1000 + 301),
@@ -68,31 +67,15 @@ graph <- paths |>
         title = "Concept of Initial Margin"
     ) +
     scale_y_continuous(breaks = seq(from = -50, to = 50, by = 10)) +
-    theme(
-        text = element_text(family = "lmroman", colour = "#555555"),
-        panel.border = element_rect(colour = "#999999", fill = "transparent"),
-        panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
-        panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
-        panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
-        panel.grid.minor = element_blank(),
-        plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
-        axis.ticks = element_blank(),
-        axis.text = element_text(size = 6),
-        axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
-        axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
-        axis.title = element_text(size = 8),
-        plot.title = element_text(size = 10, face = "bold"),
-        plot.margin = margin(.1, .1, .1, r = 1.8, unit = "cm"),
-        plot.caption = element_text(size = 8)
-    ) +
     scale_x_discrete(
         breaks = c(1, 100, 200, 250, 300),
         labels = c("t", "t+1", "t+2", "...", "t+n")
     ) +
-    coord_cartesian(clip = "off", xlim = c(0, 300))
+    coord_cartesian(clip = "off", xlim = c(0, 300)) +
+    theme(plot.margin = margin(.1, .1, .1, r = 1.8, unit = "cm"))
 
 # save output
 ggsave("Plots/Output/IM_graph.png",
-    plot = graph,
+    plot = last_plot(),
     dpi = 600, width = 12.89, height = 6.23, unit = "cm"
 )

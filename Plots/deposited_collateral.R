@@ -10,7 +10,8 @@ font_add(
     regular = "Fonts/lmroman10_regular.ttf",
     bold = "Fonts/lmroman10_bold.ttf",
     italic = "Fonts/lmroman10_italic.ttf",
-    bolditalic = "Fonts/lmroman10_bolditalic.ttf"
+    bolditalic = "Fonts/lmroman10_bolditalic.ttf",
+    symbol = "Fonts/lmroman10_math.otf"
 )
 
 showtext_auto(enable = TRUE)
@@ -56,8 +57,7 @@ collateral$SECURITY_TYPE <-
     )
 
 # plot graph
-out <-
-    collateral |>
+collateral |>
     filter(
         SECURITY_TYPE %in% c(
             "BANK BONDS", "CORPORATE BONDS", "SOVEREIGN GOVERNMENT BONDS",
@@ -81,8 +81,7 @@ out <-
         subtitle = "grey line = 20th March 2020",
         y = NULL,
         x = NULL,
-        color = NULL,
-        caption = "Own Depiction | Data Source: Eurex Clearing AG"
+        color = NULL
     ) +
     theme(
         text = element_text(family = "lmroman", colour = "#555555"),

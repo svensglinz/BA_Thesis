@@ -4,10 +4,10 @@ library(scales)
 library(ggsci)
 library(showtext)
 library(latex2exp)
-library(ggforce)
 
 # import written functions and store master sheet in memory
 source("functions.R")
+set_plot_theme()
 master <- read_master("Data/data_input.xlsx")
 
 # add fonts for plotting
@@ -16,8 +16,10 @@ font_add(
   regular = "Fonts/lmroman10_regular.ttf",
   bold = "Fonts/lmroman10_bold.ttf",
   italic = "Fonts/lmroman10_italic.ttf",
-  bolditalic = "Fonts/lmroman10_bolditalic.ttf"
+  bolditalic = "Fonts/lmroman10_bolditalic.ttf",
+  symbol = "Fonts/lmroman10_math.otf"
 )
+
 
 showtext_auto(enable = TRUE)
 showtext_opts(dpi = 600)
@@ -59,24 +61,6 @@ fesx |>
     limits = c(as.Date("2020-01-01"), as.Date("2020-12-31")),
     labels = scales::label_date(format = "%b"),
     expand = expansion(mult = .01)
-  ) +
-  theme(
-    text = element_text(family = "lmroman", colour = "#555555"),
-    plot.subtitle = element_text(size = 7, family = "times", margin = margin(0, 0, 0, b = 2)),
-    plot.caption = element_text(size = 8, margin = margin(t = 8, 0, 0, 0)),
-    panel.border = element_rect(colour = "#999999", fill = "transparent"),
-    panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
-    panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
-    panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
-    panel.grid.minor = element_blank(),
-    plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
-    axis.ticks = element_blank(),
-    axis.text = element_text(size = 6),
-    axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
-    axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
-    axis.title = element_text(size = 8),
-    plot.title = element_text(size = 10, face = "bold", margin = margin(b = 1, 0, 0, 0)),
-    plot.margin = margin(5, 5, 5, 5),
   ) +
   scale_color_jama()
 
