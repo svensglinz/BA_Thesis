@@ -5,8 +5,9 @@ library(ggh4x)
 library(ggsci)
 library(showtext)
 library(latex2exp)
+# add fonts for plotting & plot_theme
 
-# add fonts for plotting
+set_plot_theme()
 font_add(
     family = "lmroman",
     regular = "Fonts/lmroman10_regular.ttf",
