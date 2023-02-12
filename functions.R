@@ -504,3 +504,36 @@ speed_limit <- function(margin_df, n_day, limit) {
 
     return(margin_df)
 }
+
+#' set_plot_theme() sets the base theme used in all plots
+set_plot_theme <- function() {
+    ggplot2::theme_set(
+        theme(
+            text = element_text(family = "lmroman", colour = "#555555"),
+            legend.position = "right",
+            legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
+            legend.justification = .5,
+            panel.border = element_rect(colour = "#999999", fill = "transparent"),
+            panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
+            panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
+            panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
+            panel.grid.minor = element_blank(),
+            plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
+            legend.box.spacing = unit(-.2, "cm"),
+            legend.box.margin = margin(0, 0, 0, 0),
+            axis.ticks = element_blank(),
+            axis.text = element_text(size = 6),
+            axis.text.y = element_text(margin = margin(0, 0, 0, 0)),
+            axis.text.x = element_text(margin = margin(0, 0, 0, 0)),
+            axis.title = element_text(size = 8),
+            plot.title = element_text(size = 10, face = "bold"),
+            legend.title = element_text(size = 8, margin = margin(b = 0, 0, 0, 0), hjust = .5),
+            legend.direction = "vertical",
+            legend.text = element_text(size = 8, margin = margin(l = -6, 0, 0, 0)),
+            plot.margin = margin(5, 5, 5, 5),
+            legend.key = element_rect(fill = "transparent"),
+            strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
+            strip.text = element_text(size = 8, margin = margin(t = 2, b = 2, 0, 0))
+        )
+    )
+}
