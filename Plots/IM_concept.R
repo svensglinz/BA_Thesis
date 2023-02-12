@@ -1,6 +1,7 @@
 # load libraries
 library(tidyverse)
 library(showtext)
+source("functions.R")
 
 # add fonts for plotting
 font_add(
@@ -14,6 +15,7 @@ font_add(
 
 showtext_auto(enable = TRUE)
 showtext_opts(dpi = 600)
+set_plot_theme()
 
 # set seed for replicability
 set.seed(7)

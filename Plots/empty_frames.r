@@ -10,7 +10,8 @@ font_add(
     regular = "Fonts/lmroman10_regular.ttf",
     bold = "Fonts/lmroman10_bold.ttf",
     italic = "Fonts/lmroman10_italic.ttf",
-    bolditalic = "Fonts/lmroman10_bolditalic.ttf"
+    bolditalic = "Fonts/lmroman10_bolditalic.ttf",
+    symbol = "Fonts/lmroman10_math.otf"
 )
 
 showtext_auto(enable = TRUE)

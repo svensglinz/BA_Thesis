@@ -15,6 +15,7 @@ font_add(
     bolditalic = "Fonts/lmroman10_bolditalic.ttf",
     symbol = "Fonts/lmroman10_math.otf"
 )
+
 set_plot_theme()
 showtext_auto(enable = TRUE)
 showtext_opts(dpi = 600)

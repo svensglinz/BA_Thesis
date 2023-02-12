@@ -534,7 +534,7 @@ set_plot_theme <- function() {
             legend.text = element_text(size = 8, margin = margin(l = 0, 0, 0, 0)),
             plot.margin = margin(5, 5, 5, 5),
             legend.key = element_rect(fill = "transparent", color = "transparent"),
-            legend.key.size = unit(.3, "cm"), 
+            legend.key.size = unit(.3, "cm"),
             strip.background = element_rect(fill = "#FFFFFF", color = "#808080", linewidth = 0.5),
             strip.text = element_text(size = 8, margin = margin(t = 2, b = 2, 0, 0))
         )

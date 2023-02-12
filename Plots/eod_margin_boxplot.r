@@ -7,8 +7,6 @@ library(showtext)
 source("functions.R")
 
 # add fonts for plotting
-set_plot_theme()
-
 font_add(
     family = "lmroman",
     regular = "Fonts/lmroman10_regular.ttf",
@@ -20,6 +18,7 @@ font_add(
 
 showtext_auto(enable = TRUE)
 showtext_opts(dpi = 600)
+set_plot_theme()
 
 start_date <- as.Date("2020-01-01")
 end_date <- as.Date("2020-12-31")
