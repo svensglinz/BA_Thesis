@@ -33,7 +33,7 @@ daily_returns <-
 # plot graph
 daily_returns |>
   ggplot(aes(x = DATE, y = exp(LOG_RET) - 1)) +
-  geom_line(size = .3) +
+  geom_line(linewidth = .3) +
   scale_y_continuous(
     breaks = seq(from = -0.2, to = 0.2, by = 0.05),
     labels = scales::label_percent()
