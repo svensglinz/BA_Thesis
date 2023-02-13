@@ -10,7 +10,7 @@ font_add(
     bold = "Fonts/lmroman10_bold.ttf",
     italic = "Fonts/lmroman10_italic.ttf",
     bolditalic = "Fonts/lmroman10_bolditalic.ttf",
-    symbol = "Fonts/lmroman10_math.otf"
+    symbol = "Fonts/lmroman_math.ttf"
 )
 
 showtext_auto(enable = TRUE)
@@ -20,7 +20,7 @@ set_plot_theme()
 # set seed for replicability
 set.seed(7)
 
-# create diffusion & paste together with start path
+# create paths
 paths <- matrix(data = NA, nrow = 300, ncol = 20)
 for (i in 1:20) paths[, i] <- rnorm(n = 300, mean = 0, sd = 1)
 
@@ -31,12 +31,12 @@ paths <- paths |>
     as_tibble()
 
 # pivot longer for plotting of all paths by groups
-# & assign color to paths
 paths$index <- 1:300
 
 paths <- paths |>
     pivot_longer(-index, names_to = "values")
 
+# mark colored paths
 paths <- paths |>
     mutate(
         index = as.factor(index),
@@ -77,7 +77,7 @@ paths |>
     theme(plot.margin = margin(.1, .1, .1, r = 1.8, unit = "cm"))
 
 # save output
-ggsave("Plots/Output/IM_graph.png",
-    plot = last_plot(),
+ggsave("Plots/Output/IM_concept.svg",
+    plot = last_plot(), device = "svg",
     dpi = 600, width = 12.89, height = 6.23, unit = "cm"
 )

@@ -1,9 +1,9 @@
 # load necessary packages
 library(tidyverse)
 library(showtext)
+source("functions.R")
 
-# creation of empty picture frames with titles
-
+set_plot_theme()
 # add fonts for plotting
 font_add(
     family = "lmroman",
@@ -11,7 +11,7 @@ font_add(
     bold = "Fonts/lmroman10_bold.ttf",
     italic = "Fonts/lmroman10_italic.ttf",
     bolditalic = "Fonts/lmroman10_bolditalic.ttf",
-    symbol = "Fonts/lmroman10_math.otf"
+    symbol = "Fonts/lmroman_math.ttf"
 )
 
 showtext_auto(enable = TRUE)
@@ -20,13 +20,7 @@ showtext_opts(dpi = 600)
 # Bilateral Clearing
 bilateral_clearing <- NULL |>
     ggplot() +
-    labs(title = "Bilateral Clearing") +
-    theme(
-        text = element_text(family = "lmroman"),
-        plot.title = element_text(size = 10, face = "bold"),
-        plot.margin = margin(0, 0, 0, 0),
-        panel.background = element_rect(color = "black", fill = "transparent")
-    )
+    labs(title = "Bilateral Clearing")
 
 # save plot
 ggsave(
@@ -37,13 +31,7 @@ ggsave(
 # CCP Clearing
 ccp_clearing <- NULL |>
     ggplot() +
-    labs(title = "CCP Clearing") +
-    theme(
-        text = element_text(family = "lmroman"),
-        plot.title = element_text(size = 10, face = "bold"),
-        plot.margin = margin(0, 0, 0, 0),
-        panel.background = element_rect(color = "black", fill = "transparent")
-    )
+    labs(title = "CCP Clearing")
 
 # save plot
 ggsave(
@@ -55,13 +43,7 @@ ggsave(
 # Client Position Porting
 client_porting <- NULL |>
     ggplot() +
-    labs(title = "Client Position Porting") +
-    theme(
-        text = element_text(family = "lmroman"),
-        plot.title = element_text(size = 10, face = "bold"),
-        plot.margin = margin(0, 0, 0, 0),
-        panel.background = element_rect(color = "black", fill = "transparent")
-    )
+    labs(title = "Client Position Porting")
 
 # save plot
 ggsave(
@@ -72,13 +54,7 @@ ggsave(
 # Closing out of Direct Member
 closing_out <- NULL |>
     ggplot() +
-    labs(title = "Closing out of Direct Member") +
-    theme(
-        text = element_text(family = "lmroman"),
-        plot.title = element_text(size = 10, face = "bold"),
-        plot.margin = margin(0, 0, 0, 0),
-        panel.background = element_rect(color = "black", fill = "transparent")
-    )
+    labs(title = "Closing out of Direct Member")
 
 # save plot
 ggsave(

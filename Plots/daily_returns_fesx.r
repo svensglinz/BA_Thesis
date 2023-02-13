@@ -1,10 +1,8 @@
 # load relevant packages
 library(tidyverse)
-library(scales)
 library(ggsci)
 library(showtext)
 source("functions.R")
-
 
 set_plot_theme()
 master <- read_master("Data/data_input.xlsx")

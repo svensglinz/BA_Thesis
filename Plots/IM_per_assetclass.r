@@ -1,6 +1,5 @@
 # load relevant packages
 library(tidyverse)
-library(scales)
 library(ggsci)
 library(showtext)
 source("functions.R")
@@ -12,9 +11,8 @@ font_add(
     bold = "Fonts/lmroman10_bold.ttf",
     italic = "Fonts/lmroman10_italic.ttf",
     bolditalic = "Fonts/lmroman10_bolditalic.ttf",
-    symbol = "Fonts/lmroman10_math.otf"
+    symbol = "Fonts/lmroman_math.ttf"
 )
-
 
 set_plot_theme()
 showtext_auto(enable = TRUE)
@@ -40,7 +38,6 @@ df <- df |>
     summarize(IM_EUR = sum(IM_EUR))
 
 # create plot
-
 df |>
     ggplot(aes(x = FACT_DATE, y = IM_EUR / 10^9, fill = PRODUCT_GROUP)) +
     geom_area(position = "stack") +
@@ -66,10 +63,10 @@ df |>
         labels = c("Equity Derivatives", "FI Derivatives", "OTC IRS", "Other")
     )
 
-
 # save plot
-ggsave("Plots/Output/IM_per_asset.png",
+ggsave("Plots/Output/IM_per_assetclass.svg",
     plot = last_plot(),
+    device = "svg",
     dpi = 600, height = 6.6,
     width = 13.45, units = "cm"
 )

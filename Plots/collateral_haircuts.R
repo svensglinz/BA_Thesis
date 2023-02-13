@@ -1,6 +1,5 @@
 # load relevant packages
 library(tidyverse)
-library(scales)
 library(ggsci)
 library(showtext)
 source("functions.R")
@@ -12,7 +11,7 @@ font_add(
     bold = "Fonts/lmroman10_bold.ttf",
     italic = "Fonts/lmroman10_italic.ttf",
     bolditalic = "Fonts/lmroman10_bolditalic.ttf",
-    symbol = "Fonts/lmroman10_math.otf"
+    symbol = "Fonts/lmroman_math.ttf"
 )
 
 showtext_auto(enable = TRUE)
@@ -60,7 +59,7 @@ securities |>
     ggplot(aes(x = FACT_DATE, y = AVG_HAIRCUT)) +
     geom_vline(
         xintercept = line_date,
-        color = "#838383", size = 2, alpha = .2
+        color = "#575656", size = 2, alpha = .2
     ) +
     geom_line() +
     scale_x_date(
@@ -68,15 +67,16 @@ securities |>
         labels = scales::label_date(format = "%b")
     ) +
     labs(
-        title = "Evolution of Collateral Haircuts at Eurex Clearing (2020)",
+        title = "Evolution of Collateral Haircuts at Eurex (2020)",
         subtitle = "grey line = 20th March 2020",
         x = NULL,
         y = NULL
     ) +
-    facet_wrap(~SECURITY_TYPE, scales = "free_y")
+    facet_wrap(~SECURITY_TYPE, scales = "free_y") +
+    theme(strip.text = element_text(size = 7))
 
 # save output
-ggsave("Plots/Output/collateral_haircut.svg",
+ggsave("Plots/Output/collateral_haircuts.svg",
     plot = last_plot(), device = "svg",
     dpi = 600, height = 8.5, width = 15.9, units = "cm"
 )
