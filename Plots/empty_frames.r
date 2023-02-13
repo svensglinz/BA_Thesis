@@ -15,7 +15,7 @@ font_add(
 )
 
 showtext_auto(enable = TRUE)
-showtext_opts(dpi = 300)
+showtext_opts(dpi = 600)
 
 # Bilateral Clearing
 bilateral_clearing <- NULL |>
@@ -30,8 +30,8 @@ bilateral_clearing <- NULL |>
 
 # save plot
 ggsave(
-    "Plots/Output/Empty_Bilateral_Clearing.png", bilateral_clearing,
-    width = 6.2, height = 6.2, unit = "cm", dpi = 300
+    "Plots/Output/Empty_Bilateral_Clearing.svg", bilateral_clearing,
+    width = 6.2, height = 6.2, unit = "cm", dpi = 600, device = "svg"
 )
 
 # CCP Clearing
@@ -47,8 +47,9 @@ ccp_clearing <- NULL |>
 
 # save plot
 ggsave(
-    "Plots/Output/Empty_CCP_Clearing.png", ccp_clearing,
-    width = 6.2, height = 6.2, unit = "cm", dpi = 300
+    "Plots/Output/Empty_CCP_Clearing.svg", ccp_clearing,
+    device = "svg",
+    width = 6.2, height = 6.2, unit = "cm", dpi = 600
 )
 
 # Client Position Porting
@@ -64,8 +65,8 @@ client_porting <- NULL |>
 
 # save plot
 ggsave(
-    "Plots/Output/Empty_Client_Porting.png", client_porting,
-    width = 7.1, height = 5.8, unit = "cm", dpi = 300
+    "Plots/Output/Empty_Client_Porting.svg", client_porting,
+    width = 7.1, height = 5.8, unit = "cm", dpi = 600, devic = "svg"
 )
 
 # Closing out of Direct Member
@@ -81,6 +82,7 @@ closing_out <- NULL |>
 
 # save plot
 ggsave(
-    "Plots/Output/Empty_Closing_Out.png", closing_out,
-    width = 7.1, height = 5.8, unit = "cm", dpi = 300
+    "Plots/Output/Empty_Closing_Out.svg", closing_out,
+    device = "svg",
+    width = 7.1, height = 5.8, unit = "cm", dpi = 600
 )

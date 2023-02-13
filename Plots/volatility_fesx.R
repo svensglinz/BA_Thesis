@@ -22,7 +22,7 @@ font_add(
 
 
 showtext_auto(enable = TRUE)
-showtext_opts(dpi = 600)
+showtext_opts(dpi = 1000)
 
 # function which calculates the 1d EWMA Volatility
 fesx <- master$returns |>
@@ -65,7 +65,7 @@ fesx |>
   scale_color_jama()
 
 # save output
-ggsave("Plots/Output/ewma_1d.png",
-  plot = last_plot(),
-  dpi = 600, width = 7.86, height = 5, unit = "cm"
+ggsave("Plots/Output/ewma_1d.svg",
+  plot = last_plot(), device = "svg",
+  dpi = 1000, width = 7.86, height = 5, unit = "cm"
 )

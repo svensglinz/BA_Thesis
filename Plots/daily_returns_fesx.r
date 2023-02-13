@@ -53,7 +53,7 @@ daily_returns |>
   )
 
 # save output
-ggsave("Plots/Output/daily_returns_FESX.png",
+ggsave("Plots/Output/daily_returns_FESX.svg",
   plot = last_plot(), dpi = 600, height = 5,
-  width = 7.86, units = "cm",
+  width = 7.86, units = "cm", device = "svg"
 )

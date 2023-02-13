@@ -58,7 +58,7 @@ plot_df |>
     scale_fill_jama(labels = c("Initial Margin", "Variation Margin"))
 
 # save output
-ggsave("Plots/Output/EOD_VM_IM_Boxplot.png",
-    plot = last_plot(),
+ggsave("Plots/Output/EOD_VM_IM_Boxplot.svg",
+    plot = last_plot(), device = "svg",
     width = 8.33, height = 5.89, units = "cm", dpi = 600
 )

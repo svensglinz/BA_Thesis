@@ -66,17 +66,17 @@ securities |>
     scale_x_date(
         breaks = seq.Date(from = start_date, to = end_date, by = "2 month"),
         labels = scales::label_date(format = "%b")
-    )+
+    ) +
     labs(
         title = "Evolution of Collateral Haircuts at Eurex Clearing (2020)",
-        subtitle = "grey line = 20th March 2020", 
+        subtitle = "grey line = 20th March 2020",
         x = NULL,
         y = NULL
     ) +
     facet_wrap(~SECURITY_TYPE, scales = "free_y")
 
 # save output
-ggsave("Plots/Output/collateral_haircut.png",
-    plot = last_plot()
+ggsave("Plots/Output/collateral_haircut.svg",
+    plot = last_plot(), device = "svg",
     dpi = 600, height = 8.5, width = 15.9, units = "cm"
 )

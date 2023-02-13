@@ -54,7 +54,7 @@ imc |>
     )
 
 # save output
-ggsave("Plots/Output/IMC_March.png",
-    plot = last_plot(),
+ggsave("Plots/Output/IMC_March.svg",
+    plot = last_plot(), device = "svg",
     dpi = 600, width = 7.6, height = 6.2, units = "cm"
 )
