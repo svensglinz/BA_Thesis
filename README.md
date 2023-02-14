@@ -8,16 +8,22 @@ This repository hosts all code used to produce the models, graphs and calculatio
 
 ### Description of Files
 
-- All proprietary functions used in the scripts as well as a short description on their 
-  functionality are contained in :link: ![*functions*](functions.R)
-- The scripts for each plot are located in :link: ![*Plots*](Plots/)
-- All plots as .svg files are located in  :link: ![*Plots/Output*](Plots/Output)
-- All calculated procyclicality stats are located in the files :link: ![*measures.csv*](measures_short.csv) and ![*measures.csv*](measures_long.csv)
-- All calculations performed to obtain the procyclicality stats are in the scripts :link: ![*procyclicality_calculations_long.r*](procyclicality_calculations_long.r) and ![*procyclicality_calculations_short.r*](procyclicality_calculations_short.r)
-- All raw data used is located on  :link: ![*OneDrive*](https://1drv.ms/u/s!AoQRAZtdS9u4iZYwkNuHxv9e582O_g?e=1WXJlr)
+- All proprietary functions used in the scripts as well as a short description on their functionality are contained in :link: ![*functions*](functions.r)
+- The scripts to generate each plot are located in :link: ![*Plots*](Plots/)
+- All plots as .svg files are located in  :link: ![*Plots/Output*](Plots/Output/)
+- All calculated procyclicality stats are located in the files :link: ![*calculations_FESX_long.csv*](Data/calculations_FESX_long.csv) and ![*calculations_FESX_short.csv*](Data/calculations_FESX_short.csv)
+- All calculations performed to obtain the procyclicality stats are in the scripts :link: ![*calculations_FESX_long.r*](calculations_FESX_long.r) and ![*calculations_FESX_short.r*](calculations_FESX_short.r)
+- All files that are referred to in the code as being in the folder Data/Eurex_Data are located on  :link: ![*OneDrive*](https://1drv.ms/u/s!AoQRAZtdS9u4iZYwkNuHxv9e582O_g?e=1WXJlr) for confidentiality.
 
+### Data Sources
 
-### General 
+- daily returns in file `data_input`: Eurex Clearing AG (from 2005 on), Bloomberg (until 2005)
+- stress period dates in file `data_input`: Eurex Clearing AG
+- all data in Data/Eurex_Data: Eurex Clearing AG
+
+### Dependencies
+
+All code was last checked on 14/02/2023 in the following environment and with the following packages loaded and attached:
 
 ```r
 sessionInfo()

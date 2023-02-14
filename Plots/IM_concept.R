@@ -1,7 +1,7 @@
 # load libraries
 library(tidyverse)
 library(showtext)
-source("functions.R")
+source("functions.r")
 
 # add fonts for plotting
 font_add(

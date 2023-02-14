@@ -3,7 +3,7 @@ library(tidyverse)
 library(ggsci)
 library(showtext)
 library(latex2exp)
-source("functions.R")
+source("functions.r")
 
 set_plot_theme()
 master <- read_master("Data/data_input.xlsx")

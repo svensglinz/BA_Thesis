@@ -1,7 +1,7 @@
 # load relevant packages
 library(tidyverse)
 library(glue)
-source("functions.R")
+source("functions.r")
 
 master <- read_master("Data/data_input.xlsx")
 
@@ -29,17 +29,17 @@ model_conf_level <- .99
 test_conf_level <- .99
 
 # store parameters needed for margin calculation
-args_long_FESX <- list(
+args_short_FESX <- list(
     MPOR = 3, factor = 1.37, quantile = 0.978,
     lambda = NULL, n_day = 750, burn_in = 750,
-    liq_group = "PEQ01", short = FALSE,
+    liq_group = "PEQ01", short = TRUE,
     mean = TRUE
 )
 
-args_long_FESX_dotcom <- list(
+args_short_FESX_dotcom <- list(
     MPOR = 3, factor = 1.37, quantile = 0.978,
     lambda = NULL, n_day = 500, burn_in = 200,
-    liq_group = "PEQ01", short = FALSE,
+    liq_group = "PEQ01", short = TRUE,
     mean = FALSE
 )
 
@@ -50,20 +50,20 @@ count <- 1
 
 for (lambda in lambda_loop) {
     # assign lambda to the args list
-    args_long_FESX$lambda <- lambda
-    args_long_FESX_dotcom$lambda <- lambda
+    args_short_FESX$lambda <- lambda
+    args_short_FESX_dotcom$lambda <- lambda
 
     # unmitigated margin
     margin_baseline_regular <-
         calculate_fhs_margin(
             product = "FESX", start = start_regular, end = end_all,
-            args = args_long_FESX, steps = TRUE
+            args = args_short_FESX, steps = TRUE
         )
 
     # unmitigated margin during dotcom / calculate without mean
     margin_baseline_dotcom <- calculate_fhs_margin(
         product = "FESX", start = start_dotcom, end = start_regular - 1,
-        args = args_long_FESX_dotcom, steps = TRUE
+        args = args_short_FESX_dotcom, steps = TRUE
     )
 
     # join baseline margins
@@ -74,13 +74,13 @@ for (lambda in lambda_loop) {
     margin_floor_regular <-
         calculate_margin(
             product = "FESX", start = start_regular, end = end_all,
-            args = args_long_FESX, steps = TRUE, unfloored_df = margin_baseline
+            args = args_short_FESX, steps = TRUE, unfloored_df = margin_baseline
         )
 
     # floored margin during dotcom
     margin_floor_dotcom <- calculate_margin(
         product = "FESX", start = start_dotcom, end = start_regular - 1,
-        args = args_long_FESX_dotcom, steps = TRUE, unfloored_df = margin_baseline_dotcom
+        args = args_short_FESX_dotcom, steps = TRUE, unfloored_df = margin_baseline_dotcom
     )
 
     # join baseline margins
@@ -164,7 +164,6 @@ for (lambda in lambda_loop) {
             summary_stats(margin_cap_floor, start = i[["start"]], end = i[["end"]]) |>
             mutate(model = "cap_floor", period = i[["period"]])
 
-
         temp_summary_stats <- bind_rows(
             temp_summary_stats,
             temp_baseline, temp_speed, temp_floor, temp_cap,
@@ -182,16 +181,4 @@ for (lambda in lambda_loop) {
     count <- count + 1
 }
 
-write_csv(measures, "Data/procyclicality_calculations_fesx_long.csv")
-
-
-# plausibility check of results!
-margin_test_90 <- calculate_margin("FESX", start_regular, end_all, args = args_long_FESX, steps = TRUE)
-margin_test_95 <- calculate_margin("FESX", start_regular, end_all, args = args_long_FESX, steps = TRUE)
-margin_test_99 <- calculate_margin("FESX", start_regular, end_all, args = args_long_FESX, steps = TRUE)
-
-margin_test_90 |>
-    ggplot(aes(x = DATE, y = MARGIN)) +
-    geom_line(color = "blue") +
-    geom_line(data = margin_test_99, color = "red") +
-    geom_line(data = margin_test_95, color = "black")
+write_csv(measures, "Data/calculations_fesx_short.csv")
