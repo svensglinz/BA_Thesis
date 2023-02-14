@@ -94,7 +94,7 @@ ewma_mean <- function(returns, burn_in, lambda) {
 #' @param end End period (DATE) for which margin should be calculated
 #' @param steps indicates whether intermediary results (log returns, volatilities etc.)
 #' should be displayed in the output df or not (set = TRUE for procyclicality metric calculations)
-#' @param args list with model parameters which are needed to calculate the margin
+#' @param args list with model parameters that are needed to calculate the margin
 #' MPOR (numeric), factor (numeric), quantile (numeric), lambda (numeric), n_day (numeric),
 #' burn_in (numeric), liq_group (character), short (boolean), mean (boolean)
 calculate_fhs_margin <- function(product, start, end, args, steps = FALSE) {
@@ -248,14 +248,15 @@ calculate_sp_margin <- function(product, start, end, args) {
     # calculate VAR (resp. MARGIN)
     sp_margin <- df |>
         group_by(BUCKET) |>
+        mutate(RET_MPOR = exp(LOG_RET_MPOR) - 1) |>
         summarize(
             MARGIN = ifelse(
                 args$short,
-                quantile(LOG_RET_MPOR, CONF_LEVEL[1] / 100, na.rm = F, type = 2),
-                quantile(LOG_RET_MPOR, 1 - CONF_LEVEL[1] / 100, na.rm = F, type = 2)
+                quantile(RET_MPOR, CONF_LEVEL[1] / 100, na.rm = TRUE, type = 2),
+                quantile(RET_MPOR, 1 - CONF_LEVEL[1] / 100, na.rm = TRUE, type = 2)
             )
         ) |>
-        mutate(MARGIN = abs(mean(exp(MARGIN) - 1))) |>
+        mutate(MARGIN = abs(mean(MARGIN))) |>
         pull(MARGIN) |>
         unique()
 
@@ -309,7 +310,6 @@ calculate_margin <- function(product, start, end, args,
     }
 }
 
-
 #' summary_stats() calculates various procyclicality and coverage stats for a supplied
 #' margin data frame
 #' @param margin_df a margin data frame that was created by using the functions
@@ -319,7 +319,9 @@ calculate_margin <- function(product, start, end, args,
 summary_stats <- function(margin_df, start, end) {
     # load required packages
     library(tidyr)
+
     MPOR <- max(margin_df$BUCKET)
+
     margin_df <- margin_df |>
         filter(between(DATE, start, end)) |>
         mutate(
@@ -368,7 +370,7 @@ summary_stats <- function(margin_df, start, end) {
         by = 1,
         width = length(margin_df$MARGIN),
         partial = TRUE, align = "left",
-        FUN = \(x) x[1] / min(x) # deleted max() around the function! --> Check if results are the same
+        FUN = \(x) x[1] / min(x)
     )
     peak_to_through <- max(peak_to_through, na.rm = TRUE)
 
@@ -507,7 +509,9 @@ speed_limit <- function(margin_df, n_day, limit) {
 
 #' set_plot_theme() sets the base theme used in all plots
 set_plot_theme <- function() {
-    ggplot2::theme_set(
+    # load required packages
+    library(ggplot2)
+    theme_set(
         theme(
             text = element_text(family = "lmroman", colour = "#555555"),
             legend.position = "bottom",
