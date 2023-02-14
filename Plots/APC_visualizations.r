@@ -64,12 +64,12 @@ for (i in c("long", "short")) {
 
         # generate plot subtitle
         subtitle <- ifelse(nchar(lambda_breach) == 0,
-            TeX("Backtesting not passed: None    |     $\\Delta$ = Baseline Model Specification ($\\lambda$ = 0.96)"),
+            TeX("Backtesting not passed: None    |     $\\Delta$ $\\rightarrow$ $\\lambda$ = 0.96"),
             TeX(
                 paste(
                     "Backtesting not passed: $\\lambda$ =",
                     lambda_breach,
-                    "    |     $\\Delta$ = Baseline Model Specification ($\\lambda$ = 0.96)"
+                    "    |     $\\Delta$ $\\rightarrow$ $\\lambda$ = 0.96"
                 )
             )
         )
@@ -82,7 +82,7 @@ for (i in c("long", "short")) {
             # add empty observation for continuous alpha scale (via fill scale)
             geom_point(data = tibble(costs = NA_integer_, values = NA_integer_, lambda = .9, model = NA_character_), aes(fill = lambda)) +
             geom_point(
-                data = plot_df |> filter(model %in% c(i, "baseline"), lambda == .96),
+                data = plot_df |> filter(model %in% c(j, "baseline"), lambda == .96),
                 shape = 24, color = "red", show.legend = FALSE
             ) +
             geom_text_repel(

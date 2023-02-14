@@ -35,7 +35,7 @@ for (i in c("long", "short")) {
     ###########################
 
     # mutate input df
-    plot_df <- measures |>
+    plot_df <- data[[i]] |>
         filter(type %in% c("avg_ltm", "max_ltm", "n_breaches"), period != "all")
 
     # generate plot
@@ -57,7 +57,7 @@ for (i in c("long", "short")) {
             expand = expansion(add = c(.01, .01))
         ) +
         labs(
-            title = "Loss to Margin and Breaches - Stress Periods (FESX Long)",
+            title = glue("Loss to Margin and Breaches - Stress Periods (FESX {i})"),
             subtitle = TeX("Minimal random noise added to data to avoid overlapping lines | Grey Line = Baseline Calibration ($\\lambda$ = 0.96)"),
             caption = "Covid: 01.01.2020 - 31.12.2020, Financial Crisis: 01.06.2007 - 31.03.2009, Dotcom: 20.03.2001 - 01.04.2003",
             x = expression(lambda),
@@ -66,10 +66,14 @@ for (i in c("long", "short")) {
         geom_vline(xintercept = .96, linetype = "dashed", color = "darkgrey") +
         facet_grid2(period ~ type, scales = "free", independent = "y") +
         guides(color = guide_legend(label.position = "top", title = NULL, nrow = 1)) +
-        scale_color_jama()
+        scale_color_jama() +
+        theme(
+            strip.text = element_text(margin = margin(2, 2, 2, 2)),
+            legend.key.width = unit(1.4, "cm")
+        )
 
     # save plot
-    ggsave("Plots/Output/tail_risk_stress_periods_long.svg",
+    ggsave(glue("Plots/Output/LTM_stress_periods_{i}.svg"),
         last_plot(),
         device = "svg",
         width = 16, height = 10, units = "cm", dpi = 600
@@ -80,7 +84,7 @@ for (i in c("long", "short")) {
     ###########################
 
     # mutate input df
-    plot_df <- measures |>
+    plot_df <- data[[i]] |>
         filter(type %in% c("avg_ltm", "max_ltm", "n_breaches"), period == "all")
 
     # generate plot
@@ -91,7 +95,7 @@ for (i in c("long", "short")) {
             expand = expansion(add = c(.01, .01))
         ) +
         labs(
-            title = "Loss to Margin and Number of Breaches (FESX Long)",
+            title = glue("Loss to Margin and Number of Breaches (FESX {i})"),
             subtitle = TeX("Minimal random noise added to data to avoid overlapping lines | Grey Line = Baseline Calibration ($\\lambda$ = 0.96)"),
             x = expression(lambda),
             y = NULL
@@ -99,10 +103,15 @@ for (i in c("long", "short")) {
         geom_vline(xintercept = .96, linetype = "dashed", color = "darkgrey") +
         facet_wrap(~type, scales = "free") +
         guides(color = guide_legend(label.position = "top", title = NULL, nrow = 1)) +
-        scale_color_jama()
+        scale_color_jama() +
+        theme(
+            strip.text = element_text(margin = margin(2, 2, 2, 2)),
+            legend.key.width = unit(1.4, "cm")
+        )
+
 
     # save plot
-    ggsave("Plots/Output/tail_risk_total_long.svg",
+    ggsave(glue("Plots/Output/LTM_total_{i}.svg"),
         last_plot(),
         device = "svg",
         width = 16, height = 7, units = "cm", dpi = 600
