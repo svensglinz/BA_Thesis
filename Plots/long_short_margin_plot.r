@@ -1,7 +1,7 @@
 # load necessary libraries
 library(tidyverse)
 library(showtext)
-source("functions.R")
+source("functions.r")
 
 master <- read_master("Data/data_input.xlsx")
 
@@ -152,7 +152,9 @@ fesx_margin |>
     )
 
 # save chart
-ggsave("Plots/Output/margin_long_with_APC.png",
+ggsave(
+    "Plots/Output/margin_long_with_APC.svg",
+    device = "svg",
     plot = last_plot(), width = 16.3, height = 6, units = "cm", dpi = 600
 )
 

@@ -109,11 +109,16 @@ for (i in list(c("speed", "speed_floor"), "baseline", "floor", "buffer", c("cap"
             )
         ) +
         facet_wrap(~measures, scales = "free_y") +
-        scale_color_jama()
+        scale_color_jama() +
+        theme(
+            legend.position = "right",
+            legend.direction = "vertical",
+            legend.key.height = unit(.4, "cm")
+        )
 
     ggsave(
-        paste0("Plots/Output/", i[1], ".png"), last_plot(),
-        width = 16, height = 7, unit = "cm", dpi = 600
+        paste0("Plots/Output/", i[1], ".svg"), last_plot(),
+        width = 16, height = 7, unit = "cm", dpi = 600, device = "svg"
     )
 }
 
