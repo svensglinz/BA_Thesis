@@ -44,30 +44,6 @@ imc |>
         fill = NULL
     ) +
     scale_y_continuous(breaks = seq(0, 10, 2)) +
-    theme(
-        text = element_text(family = "lmroman", colour = "#555555"),
-        legend.position = "bottom",
-        legend.background = element_rect(fill = "transparent", colour = "#cccccc", linewidth = 0),
-        legend.justification = .5,
-        legend.key.size = unit(.3, "cm"),
-        plot.subtitle = element_text(size = 8),
-        plot.caption = element_text(size = 8, margin = margin(t = 4, 0, 0, 0)),
-        panel.border = element_rect(colour = "#999999", fill = "transparent"),
-        panel.background = element_rect(fill = "#FFFFFF", colour = "#999999", linewidth = 0),
-        panel.grid.minor.y = element_line(colour = "#eeeeee", linewidth = 0.5),
-        panel.grid.major = element_line(colour = "#eeeeee", linewidth = 0.5),
-        panel.grid.minor = element_blank(),
-        plot.background = element_rect(fill = "#F9F9F9", colour = "#CCCCCC", linewidth = 0, linetype = 1),
-        legend.box.spacing = unit(0, "cm"),
-        axis.ticks = element_blank(),
-        axis.text = element_text(size = 6, margin = margin(0, 0, 0, 0)),
-        axis.title = element_text(size = 8),
-        plot.title = element_text(size = 10, face = "bold"),
-        legend.direction = "horizontal",
-        legend.text = element_text(size = 8, margin = margin(b = 0, 0, 0, 0)),
-        plot.margin = margin(5, 5, 5, 5),
-        legend.key = element_rect(fill = "transparent"),
-    ) +
     scale_fill_jama(
         labels = c("Initial Margin", "Variation Margin")
     )

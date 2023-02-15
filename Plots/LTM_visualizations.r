@@ -109,7 +109,6 @@ for (i in c("long", "short")) {
             legend.key.width = unit(1.4, "cm")
         )
 
-
     # save plot
     ggsave(glue("Plots/Output/LTM_total_{i}.svg"),
         last_plot(),
