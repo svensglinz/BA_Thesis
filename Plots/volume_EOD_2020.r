@@ -3,7 +3,7 @@ library(lubridate)
 library(tidyverse)
 library(ggsci)
 library(showtext)
-source("functions.R")
+source("functions.r")
 
 # add fonts for plotting
 font_add(

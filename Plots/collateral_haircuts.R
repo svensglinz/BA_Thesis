@@ -67,7 +67,7 @@ securities |>
         labels = scales::label_date(format = "%b")
     ) +
     labs(
-        title = "Evolution of Collateral Haircuts at Eurex (2020)",
+        title = "Evolution of Collateralization Rates at Eurex (in % of Market Value, 2020)",
         subtitle = "grey line = 20th March 2020",
         x = NULL,
         y = NULL
