@@ -13,7 +13,7 @@ This repository hosts all code used to produce the models, graphs and calculatio
 - All plots as .svg files are located in  :link: ![*Plots/Output*](Plots/Output/)
 - All calculated procyclicality stats are located in the files :link: ![*calculations_fesx_long.csv*](Data/calculations_fesx_long.csv) and ![*calculations_fesx_short.csv*](Data/calculations_fesx_short.csv)
 - All calculations performed to obtain the procyclicality stats are in the scripts :link: ![*calculations_fesx_long.r*](calculations_fesx_long.r) and ![*calculations_fesx_short.r*](calculations_fesx_short.r)
-- All files that are referred to in the code as being in the folder Data/Eurex_Data are located on  :link: ![*OneDrive*](https://1drv.ms/u/s!AoQRAZtdS9u4iZYwkNuHxv9e582O_g?e=1WXJlr) for confidentiality.
+- All files that are referred to in the code as being in the folder Data/Eurex_Data are located on  :link: ![*OneDrive*](https://1drv.ms/u/s!AoQRAZtdS9u4iZYwkNuHxv9e582O_g?e=1WXJlr.com) for confidentiality.
 
 ---
 
@@ -21,7 +21,7 @@ This repository hosts all code used to produce the models, graphs and calculatio
 
 - daily returns in file `Data/data_input`: Eurex Clearing (from 2005 on), Bloomberg (until 2005)
 - stress period dates in file `Data/data_input`: Eurex Clearing
-- all data in `Data/Eurex_Data`: Eurex Clearing AG
+- all data in `Data/Eurex_Data`: Eurex Clearing
 
 ---
 
